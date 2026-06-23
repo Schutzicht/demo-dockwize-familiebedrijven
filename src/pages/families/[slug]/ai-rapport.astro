@@ -5,6 +5,7 @@ import ScoreBadge from '../../../components/ScoreBadge.astro';
 import FamilyTabs from '../../../components/FamilyTabs.astro';
 import { allFamilies } from '../../../data/wattel';
 import { CATEGORY_DEFINITIONS } from '../../../data/types';
+import { aiCoderingVoorFamilie } from '../../../data/aiCodering';
 
 export function getStaticPaths() {
   return allFamilies.map((f) => ({ params: { slug: f.slug } }));
@@ -15,6 +16,7 @@ if (!family) return Astro.redirect('/families');
 
 const latest = family.aiReports[family.aiReports.length - 1];
 const categoryById = new Map(CATEGORY_DEFINITIONS.map((c) => [c.id, c]));
+const codering = aiCoderingVoorFamilie(family);
 
 const sourceEntries = latest
   ? family.logfile.filter((e) => latest.logEntryIds.includes(e.id) && !e.isBeginNote)
@@ -36,7 +38,7 @@ const excludedBegin = family.logfile.filter((e) => e.isBeginNote).length;
           <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Automatisering #3</p>
           <h2 class="mt-1 text-[22px] font-semibold tracking-tight">AI-rapport genereren</h2>
           <p class="mt-2 text-[13px] text-[var(--color-ink-2)] leading-relaxed">
-            Bundelt alle <strong>logfile-bevindingen</strong> die niet als begin-aantekening zijn gemarkeerd, samen met de antwoorden uit KO en WS1, en maakt per categorie een concept van <em>Risico&apos;s &amp; aandachtspunten</em> en <em>Advies</em>. Adviseurs kunnen dit aanscherpen en gebruiken ter voorbereiding van de volgende sessie.
+            Bundelt alle <strong>logfile-bevindingen</strong> die niet als begin-aantekening zijn gemarkeerd, samen met de antwoorden uit KO en WS1, en maakt per categorie een concept van <strong>Risico&apos;s &amp; aandachtspunten</strong> en <strong>Advies</strong>. Adviseurs kunnen dit aanscherpen en gebruiken ter voorbereiding van de volgende sessie.
           </p>
           <div class="mt-5 flex flex-wrap items-center gap-3">
             <button
@@ -63,6 +65,65 @@ const excludedBegin = family.logfile.filter((e) => e.isBeginNote).length;
             <li class="flex items-center justify-between text-[var(--color-ink-3)]"><span>– waarvan &quot;begin&quot; (uitgesloten)</span><span class="tabular-nums">{excludedBegin}</span></li>
           </ul>
         </div>
+      </div>
+    </Card>
+
+    <Card padding="none" data-tour="ai-codering">
+      <div class="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Kern van de automatisering</p>
+          <h3 class="mt-0.5 text-[15px] font-semibold tracking-tight">AI-codering vanuit de aantekeningen</h3>
+          <p class="mt-1 max-w-2xl text-[12px] leading-relaxed text-[var(--color-ink-3)]">De AI leest jullie logfile-notities en koppelt automatisch de juiste knelpunt-code en het standaard-advies uit de bibliotheek. Die codering stroomt door naar het voorstel.</p>
+        </div>
+        <span class="shrink-0 rounded-full border border-dashed border-[var(--color-border-strong)] px-2.5 py-1 text-[10.5px] font-medium text-[var(--color-ink-3)]">Concept-weergave</span>
+      </div>
+
+      <div class="divide-y divide-[var(--color-border)]/60">
+        {codering.map((c) => {
+          const cat = categoryById.get(c.knelpunt.categoryId)!;
+          return (
+            <div class="grid items-center gap-3 px-5 py-4 lg:grid-cols-12">
+              <div class="lg:col-span-5">
+                <div class="flex flex-wrap items-center gap-2 text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">
+                  <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-ink)] text-[10px] font-semibold text-white">{c.knelpunt.categoryId}</span>
+                  <span>{cat.shortTitle}</span>
+                  <span class="text-[var(--color-border-strong)]">·</span>
+                  <span class="normal-case tracking-normal text-[var(--color-ink-3)]">{c.entry.author}</span>
+                </div>
+                <p class="mt-2 border-l-2 border-[var(--color-border-strong)] pl-3 text-[12.5px] leading-relaxed text-[var(--color-ink-2)]">{c.entry.body}</p>
+              </div>
+
+              <div class="flex justify-center lg:col-span-1">
+                <svg class="h-4 w-4 rotate-90 text-[var(--color-muted)] lg:rotate-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              </div>
+
+              <div class="space-y-2 lg:col-span-6">
+                <div class="flex items-start gap-2">
+                  <span class="mt-0.5 shrink-0 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--color-ink-2)]">{c.knelpunt.code}</span>
+                  <div class="min-w-0">
+                    <p class="text-[10px] uppercase tracking-widest text-[var(--color-muted)]">Knelpunt</p>
+                    <p class="text-[12.5px] font-medium leading-snug text-[var(--color-ink)]">{c.knelpunt.kort}</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="mt-0.5 shrink-0 rounded-md bg-[var(--color-score-green-soft)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--color-score-green)]">{c.advies.code}</span>
+                  <div class="min-w-0">
+                    <p class="text-[10px] uppercase tracking-widest text-[var(--color-muted)]">Advies</p>
+                    <p class="text-[12.5px] leading-snug text-[var(--color-ink)]">{c.advies.kort}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 pt-0.5">
+                  <span class="text-[10px] uppercase tracking-widest text-[var(--color-muted)]">Zekerheid</span>
+                  <span class={`rounded-full px-2 py-0.5 text-[10px] font-medium ${c.confidence === 'hoog' ? 'bg-[var(--color-success-soft)] text-[var(--color-success)]' : 'bg-[var(--color-warning-soft)] text-[var(--color-warning)]'}`}>{c.confidence}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div class="border-t border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-5 py-3">
+        <p class="text-[11.5px] leading-relaxed text-[var(--color-ink-3)]">Deze codering wordt verwerkt in het voorstel (vraag 5). In deze demo is de toewijzing illustratief; in de uiteindelijke versie bepaalt AI de code en het advies automatisch uit de tekst van jullie aantekeningen.</p>
       </div>
     </Card>
 
