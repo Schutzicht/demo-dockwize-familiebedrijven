@@ -13,7 +13,7 @@ const fmt = (iso: string) =>
   topbarSubtitle="Alle families in een APK-traject"
 >
   <Fragment slot="topbar-action">
-    <button class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">
+    <button id="new-family-btn" type="button" class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white transition hover:bg-black">
       <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       Nieuwe familie
     </button>
@@ -23,22 +23,22 @@ const fmt = (iso: string) =>
     <Card padding="none" class="overflow-hidden">
       <div class="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
         <div class="flex items-center gap-2">
-          <button class="rounded-[8px] bg-[var(--color-ink)] px-3 py-1.5 text-[12px] font-medium text-white">Alle ({allFamilies.length})</button>
-          <button class="rounded-[8px] bg-[var(--color-surface-2)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-border)]">Lopend</button>
-          <button class="rounded-[8px] bg-[var(--color-surface-2)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-border)]">Afgerond</button>
+          <button data-status-filter="all" class="family-status-btn rounded-[8px] bg-[var(--color-ink)] px-3 py-1.5 text-[12px] font-medium text-white">Alle ({allFamilies.length})</button>
+          <button data-status-filter="lopend" class="family-status-btn rounded-[8px] bg-[var(--color-surface-2)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-border)]">Lopend</button>
+          <button data-status-filter="afgerond" class="family-status-btn rounded-[8px] bg-[var(--color-surface-2)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-border)]">Afgerond</button>
         </div>
         <div class="relative">
           <svg class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" placeholder="Filter families..." class="h-8 w-56 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] pl-8 pr-3 text-[12.5px] outline-none focus:border-[var(--color-border-strong)]" />
+          <input id="family-filter" type="text" placeholder="Filter families..." class="h-8 w-56 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] pl-8 pr-3 text-[12.5px] outline-none focus:border-[var(--color-border-strong)]" />
         </div>
       </div>
 
-      <div class="divide-y divide-[var(--color-border)]/60">
+      <div id="family-list" class="divide-y divide-[var(--color-border)]/60">
         {allFamilies.map((f) => {
           const openActions = f.actions.filter((a) => a.status !== 'done').length;
           const lastReport = f.aiReports[f.aiReports.length - 1];
           return (
-            <a href={`/families/${f.slug}`} class="grid grid-cols-12 items-center gap-4 px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
+            <a href={`/families/${f.slug}`} data-row data-name={`${f.name} ${f.business}`.toLowerCase()} data-status={f.status} class="grid grid-cols-12 items-center gap-4 px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
               <div class="col-span-4 flex items-center gap-3">
                 <span class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-soft)] text-[12px] font-bold uppercase text-[var(--color-ink)]">{f.name.split(' ').pop()?.slice(0, 2)}</span>
                 <div>
@@ -73,7 +73,117 @@ const fmt = (iso: string) =>
             </a>
           );
         })}
+        <div id="family-empty" class="hidden px-5 py-12 text-center text-[13px] text-[var(--color-ink-3)]">Geen families gevonden.</div>
       </div>
     </Card>
   </div>
+
+  <div id="family-modal" class="fixed inset-0 z-[90] hidden">
+    <div id="family-backdrop" class="absolute inset-0 bg-[rgba(20,20,18,0.5)]"></div>
+    <div class="absolute left-1/2 top-1/2 w-[420px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]">
+      <div class="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+        <h3 class="text-[15px] font-semibold tracking-tight">Nieuw traject starten</h3>
+        <button id="family-close" type="button" aria-label="Sluiten" class="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-ink-3)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="space-y-3 px-5 py-5">
+        <div>
+          <label class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Familienaam</label>
+          <input id="family-name" type="text" placeholder="bijv. Familie Jansen" class="mt-1 w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface)]" />
+        </div>
+        <div>
+          <label class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Bedrijf / sector</label>
+          <input id="family-business" type="text" placeholder="bijv. Loonbedrijf, Zeeland" class="mt-1 w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface)]" />
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <button id="family-cancel" type="button" class="rounded-[9px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-border-strong)]">Annuleren</button>
+          <button id="family-create" type="button" class="rounded-[9px] bg-[var(--color-ink)] px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-black">Traject aanmaken</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const toast = (window as unknown as { dwToast?: (m: string) => void }).dwToast;
+    const list = document.getElementById('family-list');
+    const filterInput = document.getElementById('family-filter') as HTMLInputElement | null;
+    const emptyEl = document.getElementById('family-empty');
+    const statusBtns = Array.from(document.querySelectorAll<HTMLElement>('.family-status-btn'));
+    let statusFilter = 'all';
+
+    const rows = () => Array.from(document.querySelectorAll<HTMLElement>('#family-list [data-row]'));
+
+    const applyFilter = () => {
+      const q = (filterInput?.value || '').trim().toLowerCase();
+      let visible = 0;
+      rows().forEach((r) => {
+        const name = r.dataset.name || '';
+        const status = r.dataset.status || '';
+        const ok = (!q || name.includes(q)) && (statusFilter === 'all' || status === statusFilter);
+        r.style.display = ok ? '' : 'none';
+        if (ok) visible++;
+      });
+      emptyEl?.classList.toggle('hidden', visible > 0);
+    };
+
+    filterInput?.addEventListener('input', applyFilter);
+    statusBtns.forEach((b) =>
+      b.addEventListener('click', () => {
+        statusFilter = b.dataset.statusFilter || 'all';
+        statusBtns.forEach((x) => {
+          const on = x === b;
+          x.classList.toggle('bg-[var(--color-ink)]', on);
+          x.classList.toggle('text-white', on);
+          x.classList.toggle('bg-[var(--color-surface-2)]', !on);
+          x.classList.toggle('text-[var(--color-ink-2)]', !on);
+        });
+        applyFilter();
+      }),
+    );
+
+    // Nieuw traject
+    const modal = document.getElementById('family-modal');
+    const openBtn = document.getElementById('new-family-btn');
+    const nameInput = document.getElementById('family-name') as HTMLInputElement | null;
+    const bizInput = document.getElementById('family-business') as HTMLInputElement | null;
+    const open = () => { modal?.classList.remove('hidden'); nameInput?.focus(); };
+    const close = () => { modal?.classList.add('hidden'); if (nameInput) nameInput.value = ''; if (bizInput) bizInput.value = ''; };
+    openBtn?.addEventListener('click', open);
+    document.getElementById('family-close')?.addEventListener('click', close);
+    document.getElementById('family-cancel')?.addEventListener('click', close);
+    document.getElementById('family-backdrop')?.addEventListener('click', close);
+
+    document.getElementById('family-create')?.addEventListener('click', () => {
+      const name = (nameInput?.value || '').trim();
+      if (!name) { toast?.('Vul een familienaam in'); nameInput?.focus(); return; }
+      const business = (bizInput?.value || '').trim() || 'Nieuw familiebedrijf';
+      const initials = (name.split(' ').pop() || name).slice(0, 2).toUpperCase();
+
+      const row = document.createElement('div');
+      row.dataset.row = '';
+      row.dataset.name = `${name} ${business}`.toLowerCase();
+      row.dataset.status = 'concept';
+      row.className = 'grid grid-cols-12 items-center gap-4 px-5 py-4';
+      row.innerHTML =
+        '<div class="col-span-4 flex items-center gap-3">' +
+        `<span class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-soft)] text-[12px] font-bold uppercase text-[var(--color-ink)]">${initials}</span>` +
+        '<div><p data-n class="text-[14px] font-semibold text-[var(--color-ink)]"></p><p data-b class="text-[11.5px] text-[var(--color-ink-3)]"></p></div>' +
+        '</div>' +
+        '<div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Status</p><p class="text-[12.5px] font-medium capitalize">concept</p></div>' +
+        '<div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Kick-off</p><p class="text-[12.5px] text-[var(--color-ink-3)]">nog plannen</p></div>' +
+        '<div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Terugkoppeling</p><p class="text-[12.5px] text-[var(--color-ink-3)]">—</p></div>' +
+        '<div class="col-span-1"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Acties</p><p class="text-[12.5px] font-medium">0</p></div>' +
+        '<div class="col-span-1 text-right"><span class="inline-flex items-center rounded-full bg-[var(--color-info-soft)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-info)]">nieuw</span></div>';
+      const nEl = row.querySelector('[data-n]');
+      if (nEl) nEl.textContent = name;
+      const bEl = row.querySelector('[data-b]');
+      if (bEl) bEl.textContent = business;
+
+      list?.prepend(row);
+      close();
+      applyFilter();
+      toast?.(`Traject aangemaakt voor ${name}`);
+    });
+  </script>
 </AppLayout>

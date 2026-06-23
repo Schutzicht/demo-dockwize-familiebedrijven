@@ -51,8 +51,8 @@ const templates = [
             })}
           </div>
           <div class="mt-5 flex gap-2">
-            <button class="flex-1 rounded-[8px] bg-[var(--color-ink)] px-3 py-1.5 text-[12px] font-medium text-white hover:bg-black">Bewerken</button>
-            <button class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)]">Voorbeeld</button>
+            <button type="button" data-toast="Vragenset geopend om te bewerken" class="flex-1 rounded-[8px] bg-[var(--color-ink)] px-3 py-1.5 text-[12px] font-medium text-white hover:bg-black">Bewerken</button>
+            <button type="button" data-toast="Voorbeeldweergave geopend" class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)]">Voorbeeld</button>
           </div>
         </Card>
       ))}
@@ -79,7 +79,7 @@ const templates = [
                 <p class="text-[11.5px] text-[var(--color-ink-3)]">{d.size} · bijgewerkt {d.updated}</p>
               </div>
             </div>
-            <button class="text-[12px] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Download</button>
+            <button type="button" data-toast="Download gestart" class="text-[12px] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Download</button>
           </div>
         ))}
       </div>

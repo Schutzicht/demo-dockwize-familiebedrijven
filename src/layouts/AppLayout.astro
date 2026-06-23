@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Sidebar from '../components/Sidebar.astro';
 import Topbar from '../components/Topbar.astro';
 import Tour from '../components/Tour.astro';
+import Toast from '../components/Toast.astro';
 
 interface Props {
   title: string;
@@ -40,5 +41,6 @@ const { title, topbarTitle, topbarSubtitle, description } = Astro.props;
       </div>
     </div>
     <Tour />
+    <Toast />
   </body>
 </html>

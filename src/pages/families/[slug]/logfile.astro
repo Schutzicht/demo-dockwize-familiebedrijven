@@ -60,11 +60,13 @@ const categoryById = new Map(CATEGORY_DEFINITIONS.map((c) => [c.id, c]));
       <div class="lg:col-span-2 space-y-4">
         <div class="flex items-center justify-between">
           <h2 class="text-[16px] font-semibold tracking-tight">Tijdlijn bevindingen</h2>
-          <button class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">
+          <button id="note-jump" type="button" class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">
             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             Nieuwe notitie
           </button>
         </div>
+
+        <div id="logfile-new" class="space-y-3"></div>
 
         {Array.from(entriesByPhase.entries()).map(([phase, entries]) => (
           <div>
@@ -121,18 +123,18 @@ const categoryById = new Map(CATEGORY_DEFINITIONS.map((c) => [c.id, c]));
         <Card padding="md">
           <h3 class="text-[14px] font-semibold tracking-tight">Snelle notitie</h3>
           <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Voeg een bevinding toe vanuit elke processtap. Tag een categorie en optioneel een familielid.</p>
-          <textarea rows="4" placeholder="Wat is er opgevallen?" class="mt-3 w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-[12.5px] outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface)]"></textarea>
+          <textarea id="note-text" rows="4" placeholder="Wat is er opgevallen?" class="mt-3 w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-[12.5px] outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface)]"></textarea>
           <div class="mt-2 grid grid-cols-2 gap-2">
-            <select class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px]">
+            <select id="note-cat" class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px]">
               <option>Categorie...</option>
               {CATEGORY_DEFINITIONS.map((c) => <option>{c.id}. {c.shortTitle}</option>)}
             </select>
-            <select class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px]">
+            <select id="note-member" class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px]">
               <option>Familielid...</option>
               {family.members.map((m) => <option>{m.name}</option>)}
             </select>
           </div>
-          <button class="mt-3 w-full rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">Opslaan in logfile</button>
+          <button id="note-save" type="button" class="mt-3 w-full rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">Opslaan in logfile</button>
         </Card>
 
         <Card padding="md">
@@ -158,4 +160,61 @@ const categoryById = new Map(CATEGORY_DEFINITIONS.map((c) => [c.id, c]));
       </div>
     </div>
   </div>
+
+  <script>
+    const toast = (window as unknown as { dwToast?: (m: string) => void }).dwToast;
+    const ta = document.getElementById('note-text') as HTMLTextAreaElement | null;
+    const catSel = document.getElementById('note-cat') as HTMLSelectElement | null;
+    const memberSel = document.getElementById('note-member') as HTMLSelectElement | null;
+    const saveBtn = document.getElementById('note-save');
+    const jumpBtn = document.getElementById('note-jump');
+    const newWrap = document.getElementById('logfile-new');
+
+    jumpBtn?.addEventListener('click', () => {
+      ta?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      ta?.focus();
+    });
+
+    saveBtn?.addEventListener('click', () => {
+      const text = (ta?.value || '').trim();
+      if (!text) {
+        toast?.('Schrijf eerst een notitie');
+        ta?.focus();
+        return;
+      }
+      const catVal = catSel?.value || '';
+      const hasCat = catVal !== '' && !catVal.startsWith('Categorie');
+      const memberVal = memberSel?.value || '';
+      const hasMember = memberVal !== '' && !memberVal.startsWith('Familielid');
+      const today = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      const card = document.createElement('div');
+      card.className = 'rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] p-5';
+      card.innerHTML =
+        '<div class="flex items-start justify-between gap-4">' +
+        '<div class="flex items-center gap-2 text-[11.5px] text-[var(--color-ink-3)]">' +
+        '<span class="font-medium text-[var(--color-ink-2)]">Imro Wong</span>' +
+        '<span class="text-[var(--color-muted)]">•</span>' +
+        `<span class="tabular-nums">${today}</span>` +
+        (hasMember ? '<span class="text-[var(--color-muted)]">•</span><span data-member></span>' : '') +
+        '<span class="ml-1 rounded-full bg-[var(--color-accent-soft)] px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-[var(--color-ink)]">zojuist</span>' +
+        '</div>' +
+        (hasCat
+          ? `<span class="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-ink-2)]">${catVal}</span>`
+          : '') +
+        '</div>' +
+        '<p data-body class="mt-2 text-[13px] leading-relaxed text-[var(--color-ink)]"></p>';
+
+      const bodyEl = card.querySelector('[data-body]');
+      if (bodyEl) bodyEl.textContent = text;
+      const memberEl = card.querySelector('[data-member]');
+      if (memberEl) memberEl.textContent = `over ${memberVal}`;
+
+      newWrap?.prepend(card);
+      if (ta) ta.value = '';
+      if (catSel) catSel.selectedIndex = 0;
+      if (memberSel) memberSel.selectedIndex = 0;
+      toast?.('Notitie opgeslagen in logfile');
+    });
+  </script>
 </AppLayout>
