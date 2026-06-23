@@ -1,0 +1,266 @@
+---
+// Zelfstandige, dependency-vrije onboarding-rondleiding.
+// Start automatisch bij het eerste bezoek (op de Overzicht-pagina) en is altijd
+// opnieuw te starten via de "Rondleiding"-knop in de topbar.
+// De rondleiding loopt over meerdere pagina's: Overzicht -> werkmap familie -> Bibliotheek.
+---
+
+<div id="dw-tour" class="fixed inset-0 z-[100] hidden">
+  <div id="dw-tour-block" class="absolute inset-0"></div>
+  <div
+    id="dw-tour-spot"
+    class="pointer-events-none absolute rounded-[12px] ring-2 ring-[var(--color-accent)] transition-all duration-300"
+    style="box-shadow: 0 0 0 9999px rgba(20,20,18,0.55); display: none;"
+  ></div>
+
+  <div
+    id="dw-tour-card"
+    class="absolute w-[330px] max-w-[calc(100vw-24px)] rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)]"
+    role="dialog"
+    aria-modal="true"
+  >
+    <button
+      id="dw-tour-close"
+      type="button"
+      aria-label="Rondleiding sluiten"
+      class="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-ink-3)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]"
+    >
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+
+    <div class="flex items-center gap-2">
+      <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-bold text-[var(--color-ink)]">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </span>
+      <span class="text-[10px] font-medium uppercase tracking-widest text-[var(--color-ink-3)]">Rondleiding</span>
+      <span id="dw-tour-count" class="ml-auto mr-7 text-[11px] font-medium text-[var(--color-muted)] tabular-nums"></span>
+    </div>
+
+    <h3 id="dw-tour-title" class="mt-3 text-[15px] font-semibold tracking-tight text-[var(--color-ink)]"></h3>
+    <p id="dw-tour-body" class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--color-ink-2)]"></p>
+
+    <div class="mt-5 flex items-center justify-between gap-2">
+      <button id="dw-tour-skip" type="button" class="text-[11.5px] font-medium text-[var(--color-ink-3)] transition-colors hover:text-[var(--color-ink)]">Overslaan</button>
+      <div class="flex items-center gap-2">
+        <button id="dw-tour-prev" type="button" class="rounded-[9px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-border-strong)]">Terug</button>
+        <button id="dw-tour-next" type="button" class="rounded-[9px] bg-[var(--color-ink)] px-3.5 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-black">Volgende</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    #dw-tour-spot { transition: none !important; }
+  }
+</style>
+
+<script>
+  type Step = { path: string; sel: string | null; title: string; body: string };
+
+  const STEPS: Step[] = [
+    {
+      path: '/',
+      sel: null,
+      title: 'Welkom in jullie werkplek',
+      body: 'In het kort: vragenlijsten komen binnen, de tool maakt er automatisch kleurplaten van, en alles staat op één plek. Ik laat je in een minuut rond. Je kunt altijd op Overslaan klikken.',
+    },
+    {
+      path: '/',
+      sel: 'aside a[href="/families"]',
+      title: 'Families zijn trajecten',
+      body: 'Elke familie krijgt een eigen werkmap met vragenlijsten, logfile, AI-rapport en eindrapport. Hier vind je ze terug.',
+    },
+    {
+      path: '/',
+      sel: '[data-tour="how"]',
+      title: 'Het traject in vier stappen',
+      body: 'Vragenlijst wordt automatisch gescoord tot kleurplaat, het team vult de logfile, AI maakt een conceptrapport, en jullie stellen de definitieve beoordeling vast voor het eindrapport.',
+    },
+    {
+      path: '/',
+      sel: '[data-tour="families-table"]',
+      title: 'Open een familie',
+      body: 'Klik op een traject om de werkmap in te duiken. We pakken familie Wattel erbij. Klik op Volgende.',
+    },
+    {
+      path: '/families/wattel',
+      sel: '[data-tour="tabs"]',
+      title: 'De werkmap',
+      body: 'Dit zijn de tabbladen van één familie: vragenlijsten, logfile, AI-rapport, team-beoordeling, eindrapport en de klant-view.',
+    },
+    {
+      path: '/families/wattel',
+      sel: '[data-tour="wheels"]',
+      title: 'De kleurplaat',
+      body: 'Negen categorieën, automatisch gescoord op groen, geel of rood. Je ziet de reis van zelfbeoordeling bij de kick-off naar de definitieve team-beoordeling.',
+    },
+    {
+      path: '/families/wattel',
+      sel: 'aside a[href="/bibliotheek"]',
+      title: 'Onderbouwen met codes',
+      body: 'Je beoordeling onderbouw je met standaard knelpunten en verbeteracties uit de bibliotheek. Klik op Volgende, dan gaan we erheen.',
+    },
+    {
+      path: '/bibliotheek',
+      sel: '[data-tour="bibliotheek"]',
+      title: 'De beoordelingsbibliotheek',
+      body: 'Alle standaard knelpunten en verbeteracties per categorie, met codes en de korte teksten voor het rapport. Volledig doorzoekbaar.',
+    },
+    {
+      path: '/bibliotheek',
+      sel: null,
+      title: 'Klaar',
+      body: 'Dat is de rode draad: van vragenlijst naar kleurplaat naar onderbouwd rapport, alles op één plek. Wil je dit nog eens zien? Klik rechtsboven op Rondleiding.',
+    },
+  ];
+
+  const LS = {
+    active: 'dw_tour_active',
+    idx: 'dw_tour_idx',
+    done: 'dw_tour_done',
+  };
+  const get = (k: string) => (typeof localStorage !== 'undefined' ? localStorage.getItem(k) : null);
+  const set = (k: string, v: string) => localStorage.setItem(k, v);
+
+  const root = document.getElementById('dw-tour');
+  const block = document.getElementById('dw-tour-block');
+  const spot = document.getElementById('dw-tour-spot');
+  const card = document.getElementById('dw-tour-card');
+  const elTitle = document.getElementById('dw-tour-title');
+  const elBody = document.getElementById('dw-tour-body');
+  const elCount = document.getElementById('dw-tour-count');
+  const btnNext = document.getElementById('dw-tour-next');
+  const btnPrev = document.getElementById('dw-tour-prev');
+  const btnSkip = document.getElementById('dw-tour-skip');
+  const btnClose = document.getElementById('dw-tour-close');
+
+  if (root && block && spot && card && elTitle && elBody && elCount && btnNext && btnPrev && btnSkip && btnClose) {
+    const path = () => location.pathname.replace(/\/$/, '') || '/';
+    let idx = parseInt(get(LS.idx) || '0', 10) || 0;
+
+    const place = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      const pad = 8;
+      spot.style.display = 'block';
+      spot.style.top = `${r.top - pad}px`;
+      spot.style.left = `${r.left - pad}px`;
+      spot.style.width = `${r.width + pad * 2}px`;
+      spot.style.height = `${r.height + pad * 2}px`;
+      block.style.background = 'transparent';
+
+      const cardW = card.offsetWidth || 330;
+      const cardH = card.offsetHeight || 190;
+      let top = r.bottom + 12;
+      if (top + cardH > window.innerHeight - 12) top = Math.max(12, r.top - cardH - 12);
+      let left = r.left + r.width / 2 - cardW / 2;
+      left = Math.min(Math.max(12, left), window.innerWidth - cardW - 12);
+      card.style.transform = 'none';
+      card.style.top = `${top}px`;
+      card.style.left = `${left}px`;
+    };
+
+    const center = () => {
+      spot.style.display = 'none';
+      block.style.background = 'rgba(20,20,18,0.55)';
+      card.style.transform = 'translate(-50%, -50%)';
+      card.style.top = '50%';
+      card.style.left = '50%';
+    };
+
+    let onReflow: (() => void) | null = null;
+
+    const render = (i: number) => {
+      idx = i;
+      set(LS.idx, String(i));
+      const step = STEPS[i];
+      root.classList.remove('hidden');
+      elTitle.textContent = step.title;
+      elBody.textContent = step.body;
+      elCount.textContent = `${i + 1} / ${STEPS.length}`;
+      (btnPrev as HTMLButtonElement).style.visibility = i === 0 ? 'hidden' : 'visible';
+      btnNext.textContent = i === STEPS.length - 1 ? 'Klaar' : 'Volgende';
+
+      if (onReflow) {
+        window.removeEventListener('resize', onReflow);
+        window.removeEventListener('scroll', onReflow, true);
+        onReflow = null;
+      }
+
+      const el = step.sel ? document.querySelector(step.sel) : null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const reflow = () => place(el);
+        window.setTimeout(reflow, 360);
+        onReflow = reflow;
+        window.addEventListener('resize', reflow);
+        window.addEventListener('scroll', reflow, true);
+      } else {
+        center();
+      }
+    };
+
+    const finish = () => {
+      set(LS.active, '0');
+      set(LS.done, '1');
+      set(LS.idx, '0');
+      root.classList.add('hidden');
+      if (onReflow) {
+        window.removeEventListener('resize', onReflow);
+        window.removeEventListener('scroll', onReflow, true);
+        onReflow = null;
+      }
+    };
+
+    const go = (target: number) => {
+      if (target < 0) return;
+      if (target >= STEPS.length) return finish();
+      const step = STEPS[target];
+      if (step.path !== path()) {
+        set(LS.idx, String(target));
+        set(LS.active, '1');
+        location.assign(step.path);
+      } else {
+        render(target);
+      }
+    };
+
+    btnNext.addEventListener('click', () => go(idx + 1));
+    btnPrev.addEventListener('click', () => go(idx - 1));
+    btnSkip.addEventListener('click', finish);
+    btnClose.addEventListener('click', finish);
+
+    const start = () => {
+      set(LS.active, '1');
+      set(LS.idx, '0');
+      idx = 0;
+      if (path() !== STEPS[0].path) {
+        location.assign(STEPS[0].path);
+      } else {
+        render(0);
+      }
+    };
+
+    document.querySelectorAll('[data-dw-tour-start]').forEach((b) =>
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        start();
+      }),
+    );
+
+    // Resume na navigatie, of automatisch starten bij het allereerste bezoek.
+    const active = get(LS.active) === '1';
+    const done = get(LS.done) === '1';
+    if (active) {
+      const step = STEPS[idx];
+      if (step && step.path === path()) {
+        render(idx);
+      } else {
+        const j = STEPS.findIndex((s) => s.path === path());
+        if (j >= 0) render(j);
+      }
+    } else if (!done && path() === '/') {
+      start();
+    }
+  }
+</script>

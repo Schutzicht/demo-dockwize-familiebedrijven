@@ -1,0 +1,24 @@
+---
+import type { Score } from '../data/types';
+
+interface Props {
+  score: Score;
+  label?: string;
+  size?: 'sm' | 'md';
+}
+const { score, label, size = 'md' } = Astro.props;
+
+const map: Record<Score, { bg: string; text: string; dot: string; copy: string }> = {
+  green: { bg: 'bg-[var(--color-score-green-soft)]', text: 'text-[var(--color-score-green)]', dot: 'bg-[var(--color-score-green)]', copy: 'Op koers' },
+  yellow: { bg: 'bg-[var(--color-score-yellow-soft)]', text: 'text-[var(--color-score-yellow)]', dot: 'bg-[var(--color-score-yellow)]', copy: 'Aandacht' },
+  red: { bg: 'bg-[var(--color-score-red-soft)]', text: 'text-[var(--color-score-red)]', dot: 'bg-[var(--color-score-red)]', copy: 'Actie nodig' },
+  grey: { bg: 'bg-[var(--color-surface-2)]', text: 'text-[var(--color-ink-3)]', dot: 'bg-[var(--color-score-grey)]', copy: 'Onbekend' },
+};
+const c = map[score];
+const sizeCls = size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[11px]';
+---
+
+<span class={`inline-flex items-center gap-1.5 rounded-full font-medium ${c.bg} ${c.text} ${sizeCls}`}>
+  <span class={`h-1.5 w-1.5 rounded-full ${c.dot}`}></span>
+  {label ?? c.copy}
+</span>

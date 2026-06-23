@@ -1,0 +1,95 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/Card.astro';
+import { allFamilies } from '../data/wattel';
+
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+
+const rows = allFamilies.flatMap((f) =>
+  f.questionnaires.map((q) => ({
+    family: f,
+    q,
+    completion: Math.round((q.completedBy.length / f.members.length) * 100),
+  })),
+);
+
+const momentLabel: Record<string, string> = {
+  KO: 'KO — Voorloop',
+  WS1: 'WS1 — Uitgebreid',
+  TK: 'TK — Evaluatie',
+};
+---
+
+<AppLayout
+  title="Vragenlijsten — Dockwize Familiebedrijven"
+  topbarTitle="Vragenlijsten"
+  topbarSubtitle="Alle uitgaande vragenlijsten over alle families"
+>
+  <Fragment slot="topbar-action">
+    <button class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nieuwe vragenlijst
+    </button>
+  </Fragment>
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="grid gap-4 sm:grid-cols-3">
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Totaal verstuurd</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{rows.length}</p>
+      </Card>
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Voltooid</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{rows.filter((r) => r.completion === 100).length}</p>
+      </Card>
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Lopend</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{rows.filter((r) => r.completion < 100).length}</p>
+      </Card>
+    </div>
+
+    <Card padding="none" class="overflow-hidden">
+      <div class="border-b border-[var(--color-border)] px-5 py-4">
+        <h3 class="text-[14px] font-semibold tracking-tight">Alle vragenlijsten</h3>
+      </div>
+      <table class="w-full text-[13px]">
+        <thead>
+          <tr class="border-b border-[var(--color-border)] text-left text-[11px] uppercase tracking-widest text-[var(--color-muted)]">
+            <th class="px-5 py-3 font-medium">Familie</th>
+            <th class="px-5 py-3 font-medium">Moment</th>
+            <th class="px-5 py-3 font-medium">Vragen</th>
+            <th class="px-5 py-3 font-medium">Verstuurd</th>
+            <th class="px-5 py-3 font-medium">Deadline</th>
+            <th class="px-5 py-3 font-medium">Voltooid</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr class="border-b border-[var(--color-border)]/60 hover:bg-[var(--color-surface-2)]">
+              <td class="px-5 py-3.5">
+                <a href={`/families/${r.family.slug}`} class="font-medium text-[var(--color-ink)] hover:underline">{r.family.name}</a>
+              </td>
+              <td class="px-5 py-3.5"><span class="inline-flex rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-ink-2)]">{momentLabel[r.q.moment]}</span></td>
+              <td class="px-5 py-3.5 tabular-nums text-[var(--color-ink-2)]">{r.q.questions.length}</td>
+              <td class="px-5 py-3.5 tabular-nums text-[var(--color-ink-2)]">{fmt(r.q.sentAt)}</td>
+              <td class="px-5 py-3.5 tabular-nums text-[var(--color-ink-2)]">{fmt(r.q.dueAt)}</td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-2">
+                  <div class="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--color-surface-2)]">
+                    <div class={r.completion === 100 ? 'h-full bg-[var(--color-score-green)]' : 'h-full bg-[var(--color-accent)]'} style={`width: ${r.completion}%`}></div>
+                  </div>
+                  <span class="text-[11.5px] tabular-nums text-[var(--color-ink-2)]">{r.completion}%</span>
+                </div>
+              </td>
+              <td class="px-5 py-3.5 text-right">
+                <a href={`/families/${r.family.slug}/vragenlijsten?m=${r.q.moment}`} class="text-[12.5px] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Open →</a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
+  </div>
+</AppLayout>

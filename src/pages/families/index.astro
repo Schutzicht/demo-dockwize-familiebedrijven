@@ -1,0 +1,79 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Card from '../../components/Card.astro';
+import { allFamilies } from '../../data/wattel';
+
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+---
+
+<AppLayout
+  title="Families — Dockwize Familiebedrijven"
+  topbarTitle="Families"
+  topbarSubtitle="Alle families in een APK-traject"
+>
+  <Fragment slot="topbar-action">
+    <button class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nieuwe familie
+    </button>
+  </Fragment>
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <Card padding="none" class="overflow-hidden">
+      <div class="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+        <div class="flex items-center gap-2">
+          <button class="rounded-[8px] bg-[var(--color-ink)] px-3 py-1.5 text-[12px] font-medium text-white">Alle ({allFamilies.length})</button>
+          <button class="rounded-[8px] bg-[var(--color-surface-2)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-border)]">Lopend</button>
+          <button class="rounded-[8px] bg-[var(--color-surface-2)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-border)]">Afgerond</button>
+        </div>
+        <div class="relative">
+          <svg class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Filter families..." class="h-8 w-56 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] pl-8 pr-3 text-[12.5px] outline-none focus:border-[var(--color-border-strong)]" />
+        </div>
+      </div>
+
+      <div class="divide-y divide-[var(--color-border)]/60">
+        {allFamilies.map((f) => {
+          const openActions = f.actions.filter((a) => a.status !== 'done').length;
+          const lastReport = f.aiReports[f.aiReports.length - 1];
+          return (
+            <a href={`/families/${f.slug}`} class="grid grid-cols-12 items-center gap-4 px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
+              <div class="col-span-4 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-soft)] text-[12px] font-bold uppercase text-[var(--color-ink)]">{f.name.split(' ').pop()?.slice(0, 2)}</span>
+                <div>
+                  <p class="text-[14px] font-semibold text-[var(--color-ink)]">{f.name}</p>
+                  <p class="text-[11.5px] text-[var(--color-ink-3)]">{f.business}</p>
+                </div>
+              </div>
+              <div class="col-span-2">
+                <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Status</p>
+                <p class="text-[12.5px] font-medium capitalize">{f.status}</p>
+              </div>
+              <div class="col-span-2">
+                <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Kick-off</p>
+                <p class="text-[12.5px] tabular-nums">{fmt(f.kickoffDate)}</p>
+              </div>
+              <div class="col-span-2">
+                <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Terugkoppeling</p>
+                <p class="text-[12.5px] tabular-nums">{fmt(f.terugkoppelingDate)}</p>
+              </div>
+              <div class="col-span-1">
+                <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Acties</p>
+                <p class="text-[12.5px] font-medium">{openActions}</p>
+              </div>
+              <div class="col-span-1 text-right">
+                {lastReport && (
+                  <span class="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-ink)]">
+                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.5v2.5H12v1H9.5V9H8.5V6H6V5h2.5V2.5z"/></svg>
+                    AI
+                  </span>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </Card>
+  </div>
+</AppLayout>

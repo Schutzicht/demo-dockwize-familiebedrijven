@@ -1,0 +1,138 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Card from '../../../components/Card.astro';
+import ScoreBadge from '../../../components/ScoreBadge.astro';
+import ScoreWheel from '../../../components/ScoreWheel.astro';
+import FamilyTabs from '../../../components/FamilyTabs.astro';
+import { allFamilies } from '../../../data/wattel';
+import { CATEGORY_DEFINITIONS, categoryScoreFromAnswers } from '../../../data/types';
+
+export function getStaticPaths() {
+  return allFamilies.map((f) => ({ params: { slug: f.slug } }));
+}
+
+const family = allFamilies.find((f) => f.slug === Astro.params.slug);
+if (!family) return Astro.redirect('/families');
+
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+
+const koRun = family.questionnaires.find((q) => q.moment === 'KO');
+const ws1Run = family.questionnaires.find((q) => q.moment === 'WS1');
+
+const koSegments = CATEGORY_DEFINITIONS.map((c) => ({
+  categoryId: c.id,
+  score: koRun ? categoryScoreFromAnswers(koRun.answers, koRun.questions, c.id).score : 'grey',
+}));
+const ws1Segments = CATEGORY_DEFINITIONS.map((c) => ({
+  categoryId: c.id,
+  score: ws1Run ? categoryScoreFromAnswers(ws1Run.answers, ws1Run.questions, c.id).score : 'grey',
+}));
+
+const teamSegments = CATEGORY_DEFINITIONS.map((c) => {
+  const a = family.assessments.find((x) => x.categoryId === c.id);
+  return { categoryId: c.id, score: a?.teamScore ?? 'grey' };
+});
+
+const overdragers = family.members.filter((m) => m.role === 'overdrager');
+const opvolgers = family.members.filter((m) => m.role === 'opvolger');
+const overigen = family.members.filter((m) => m.role === 'overig');
+---
+
+<AppLayout
+  title={`${family.name} — Dockwize Familiebedrijven`}
+  topbarTitle={family.name}
+  topbarSubtitle={`${family.business}, ${family.status}`}
+>
+  <Fragment slot="topbar-action">
+    <a href={`/families/${family.slug}/klantview`} target="_blank" class="inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12.5px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M14 10l7-7M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
+      Klant-view openen
+    </a>
+  </Fragment>
+
+  <FamilyTabs family={family} active="overzicht" />
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="grid gap-6 lg:grid-cols-3">
+      <Card class="lg:col-span-3" padding="lg" data-tour="wheels">
+        <div class="grid items-start gap-8 lg:grid-cols-3">
+          <ScoreWheel segments={koSegments} centerTitle="KO" centerSubtitle="Kick-off" variant="dark" size={320} />
+          <ScoreWheel segments={ws1Segments} centerTitle="WS1" centerSubtitle="Workshop 1" variant="dark" size={320} />
+          <ScoreWheel segments={teamSegments} centerTitle="TK" centerSubtitle="Team beoordeling" variant="dark" size={320} />
+        </div>
+        <div class="mt-6 grid grid-cols-3 gap-4 text-center text-[12px]">
+          <div><span class="text-[var(--color-ink-3)]">Voorloop-vragenlijst</span><br/><span class="font-medium">{fmt(koRun?.sentAt ?? family.kickoffDate)}</span></div>
+          <div><span class="text-[var(--color-ink-3)]">Uitgebreide vragenlijst</span><br/><span class="font-medium">{fmt(ws1Run?.sentAt ?? family.workshopDate)}</span></div>
+          <div><span class="text-[var(--color-ink-3)]">Team-beoordeling (laatste AI)</span><br/><span class="font-medium">{family.aiReports[family.aiReports.length - 1]?.generatedAt ?? '—'}</span></div>
+        </div>
+      </Card>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      <Card class="lg:col-span-2" padding="lg">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Aangenomen scenario</p>
+        <h3 class="mt-1 text-[18px] font-semibold tracking-tight">Hoe de overdracht eruitziet</h3>
+        <p class="mt-3 text-[13px] leading-relaxed text-[var(--color-ink-2)]">{family.scenario}</p>
+        <div class="mt-5 grid gap-3 sm:grid-cols-3">
+          {[{ title: 'Overdragers', members: overdragers }, { title: 'Opvolgers', members: opvolgers }, { title: 'Overig', members: overigen }].map((group) => (
+            <div class="rounded-[10px] bg-[var(--color-surface-2)] p-4">
+              <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">{group.title}</p>
+              <ul class="mt-2 space-y-2">
+                {group.members.map((m) => (
+                  <li>
+                    <p class="text-[13px] font-medium">{m.name}</p>
+                    {m.description && <p class="text-[11px] text-[var(--color-ink-3)]">{m.description}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card padding="lg">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">APK Team</p>
+        <h3 class="mt-1 text-[18px] font-semibold tracking-tight">Het team</h3>
+        <ul class="mt-4 space-y-3">
+          {family.team.map((t) => (
+            <li class="flex items-start gap-3">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--color-ink)] text-[11px] font-semibold text-white">
+                {t.name.split(' ').map((n) => n[0]).slice(0, 2).join('')}
+              </span>
+              <div>
+                <p class="text-[13px] font-medium">{t.name}</p>
+                <p class="text-[11px] text-[var(--color-ink-3)]">{t.role} · {t.organisation}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </div>
+
+    <Card padding="none">
+      <div class="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+        <div>
+          <h3 class="text-[14px] font-semibold tracking-tight">Categorie-beoordelingen</h3>
+          <p class="text-[12px] text-[var(--color-ink-3)]">Team-oordeel per categorie. Bron: handmatig + AI-rapport.</p>
+        </div>
+        <a href={`/families/${family.slug}/team-beoordeling`} class="text-[12.5px] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Beheren →</a>
+      </div>
+      <div class="divide-y divide-[var(--color-border)]/60">
+        {CATEGORY_DEFINITIONS.map((cat) => {
+          const a = family.assessments.find((x) => x.categoryId === cat.id);
+          return (
+            <div class="grid grid-cols-12 items-center gap-4 px-5 py-3">
+              <div class="col-span-1 text-[12px] font-semibold text-[var(--color-ink-3)]">{cat.id}</div>
+              <div class="col-span-3"><p class="text-[13px] font-medium">{cat.title}</p></div>
+              <div class="col-span-6 text-[12px] text-[var(--color-ink-2)]">{a?.advies.slice(0, 110) ?? '—'}{a && a.advies.length > 110 ? '…' : ''}</div>
+              <div class="col-span-2 text-right">
+                {a ? <ScoreBadge score={a.teamScore} size="sm" /> : <ScoreBadge score="grey" size="sm" />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  </div>
+</AppLayout>

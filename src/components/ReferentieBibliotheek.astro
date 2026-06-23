@@ -1,0 +1,162 @@
+---
+import { REFERENTIE_DB } from '../data/referentie';
+import { CATEGORY_DEFINITIONS } from '../data/types';
+
+const totaalKnel = REFERENTIE_DB.reduce((s, c) => s + c.knelpunten.length, 0);
+const totaalVerb = REFERENTIE_DB.reduce(
+  (s, c) => s + c.knelpunten.reduce((t, k) => t + k.verbeteracties.length, 0),
+  0,
+);
+
+const displayTitle = (id: number) =>
+  CATEGORY_DEFINITIONS.find((c) => c.id === id)?.title ?? '';
+
+const searchText = (cat: (typeof REFERENTIE_DB)[number]['knelpunten'][number], catTitle: string) =>
+  [
+    cat.code,
+    cat.kort,
+    cat.omschrijving,
+    catTitle,
+    ...cat.verbeteracties.flatMap((v) => [v.code, v.kort, v.omschrijving]),
+  ]
+    .join(' ')
+    .toLowerCase();
+---
+
+<section class="space-y-4" data-ref-root data-tour="bibliotheek">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h2 class="text-[18px] font-semibold tracking-tight">Beoordelingsbibliotheek</h2>
+      <p class="mt-1 max-w-2xl text-[12.5px] text-[var(--color-ink-3)]">
+        De standaard knelpunten en verbeteracties per categorie, met de codes en korte teksten die op de
+        kleurplaat van het eindrapport komen. Gebruik deze codes om je team-beoordeling te onderbouwen.
+      </p>
+    </div>
+    <div class="flex shrink-0 items-center gap-1.5 text-[11.5px] text-[var(--color-ink-3)] tabular-nums">
+      <span class="rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 font-medium">9 categorieën</span>
+      <span class="rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 font-medium">{totaalKnel} knelpunten</span>
+      <span class="rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 font-medium">{totaalVerb} verbeteracties</span>
+    </div>
+  </div>
+
+  <div class="relative">
+    <svg
+      class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted)]"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    >
+      <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+    </svg>
+    <input
+      id="ref-search"
+      type="search"
+      autocomplete="off"
+      placeholder="Zoek op code, knelpunt of verbeteractie, bv ‘familiestatuut’ of ‘3.1’"
+      class="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5 pl-10 pr-3 text-[13px] text-[var(--color-ink)] shadow-[var(--shadow-sm)] outline-none transition-colors placeholder:text-[var(--color-muted)] focus:border-[var(--color-border-strong)]"
+    />
+  </div>
+
+  <p data-ref-empty hidden class="rounded-[12px] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-8 text-center text-[13px] text-[var(--color-ink-3)]">
+    Geen knelpunten of verbeteracties gevonden voor <span data-ref-empty-q class="font-medium text-[var(--color-ink)]"></span>.
+  </p>
+
+  <div class="space-y-3">
+    {REFERENTIE_DB.map((cat, i) => {
+      const title = displayTitle(cat.id);
+      return (
+        <details
+          data-ref-cat
+          data-default={i === 0 ? '1' : '0'}
+          data-total={cat.knelpunten.length}
+          open={i === 0}
+          class="ref-cat group overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
+        >
+          <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-ink)] text-[12px] font-semibold text-white">{cat.id}</span>
+            <span class="flex-1">
+              <span class="flex items-center gap-2">
+                <span class="text-[14px] font-semibold tracking-tight">{title}</span>
+                <span class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-[var(--color-ink-3)]">{cat.afkorting}</span>
+              </span>
+            </span>
+            <span class="shrink-0 text-[11.5px] text-[var(--color-ink-3)] tabular-nums">
+              <span data-ref-count>{cat.knelpunten.length}</span> knelpunten
+            </span>
+            <svg class="ref-chevron h-4 w-4 shrink-0 text-[var(--color-muted)] transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          </summary>
+
+          <div class="divide-y divide-[var(--color-border)]/70 border-t border-[var(--color-border)]">
+            {cat.knelpunten.map((k) => (
+              <div data-ref-knel data-text={searchText(k, title)} class="px-5 py-4">
+                <div class="flex items-start gap-2.5">
+                  <span class="mt-0.5 shrink-0 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--color-ink-2)]">{k.code}</span>
+                  <div class="min-w-0">
+                    <p class="text-[13px] font-semibold leading-snug text-[var(--color-ink)]">{k.kort}</p>
+                    <p class="mt-1 text-[12.5px] leading-relaxed text-[var(--color-ink-2)]">{k.omschrijving}</p>
+                  </div>
+                </div>
+
+                <div class="mt-3 space-y-2 border-l-2 border-[var(--color-accent)] pl-3.5 sm:ml-[34px]">
+                  {k.verbeteracties.map((v) => (
+                    <div class="flex items-start gap-2.5">
+                      <span class="mt-0.5 shrink-0 rounded-md bg-[var(--color-score-green-soft)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--color-score-green)]">{v.code}</span>
+                      <div class="min-w-0">
+                        <p class="text-[12.5px] font-medium leading-snug text-[var(--color-ink)]">{v.kort}</p>
+                        <p class="mt-0.5 text-[12px] leading-relaxed text-[var(--color-ink-3)]">{v.omschrijving}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      );
+    })}
+  </div>
+</section>
+
+<style>
+  .ref-cat > summary::-webkit-details-marker { display: none; }
+  .ref-cat[open] .ref-chevron { transform: rotate(180deg); }
+</style>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-ref-root]');
+  const input = document.getElementById('ref-search') as HTMLInputElement | null;
+  if (root && input) {
+    const cats = Array.from(root.querySelectorAll<HTMLDetailsElement>('[data-ref-cat]'));
+    const empty = root.querySelector<HTMLElement>('[data-ref-empty]');
+    const emptyQ = root.querySelector<HTMLElement>('[data-ref-empty-q]');
+
+    const apply = () => {
+      const q = input.value.trim().toLowerCase();
+      let anyVisible = false;
+      cats.forEach((cat) => {
+        const knels = Array.from(cat.querySelectorAll<HTMLElement>('[data-ref-knel]'));
+        let visible = 0;
+        knels.forEach((k) => {
+          const match = !q || (k.dataset.text ?? '').includes(q);
+          k.hidden = !match;
+          if (match) visible++;
+        });
+        cat.hidden = visible === 0;
+        if (visible > 0) anyVisible = true;
+        cat.open = q ? visible > 0 : cat.dataset.default === '1';
+        const count = cat.querySelector<HTMLElement>('[data-ref-count]');
+        if (count) count.textContent = q ? String(visible) : (cat.dataset.total ?? '');
+      });
+      if (empty) empty.hidden = anyVisible;
+      if (emptyQ) emptyQ.textContent = q ? `“${input.value.trim()}”` : '';
+    };
+
+    input.addEventListener('input', apply);
+
+    // Deep-link: /bibliotheek?zoek=3.1 prefilt de zoekterm (vanuit team-beoordeling)
+    const initial = new URLSearchParams(location.search).get('zoek');
+    if (initial) {
+      input.value = initial;
+      apply();
+      root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+</script>

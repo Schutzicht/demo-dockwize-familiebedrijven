@@ -1,0 +1,152 @@
+---
+import DockwizeMark from './DockwizeMark.astro';
+
+interface NavItem {
+  label: string;
+  href: string;
+  iconPath: string;
+  badge?: string | number;
+}
+interface NavGroup {
+  label?: string;
+  items: NavItem[];
+}
+
+const icons = {
+  dashboard: 'M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z',
+  building: 'M3 21V8l9-5 9 5v13H3zm2-2h6v-5h2v5h6V9.13L12 5.4 5 9.13V19zm4-9h2v2H9v-2zm4 0h2v2h-2v-2zm-4 4h2v2H9v-2zm4 0h2v2h-2v-2z',
+  list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  sparkles: 'M9 2.5a.5.5 0 0 1 .5.5v2.5H12a.5.5 0 0 1 0 1H9.5V9a.5.5 0 0 1-1 0V6.5H6a.5.5 0 0 1 0-1h2.5V3a.5.5 0 0 1 .5-.5zm9 6a.5.5 0 0 1 .5.5v1.5H20a.5.5 0 0 1 0 1h-1.5V13a.5.5 0 0 1-1 0v-1.5H16a.5.5 0 0 1 0-1h1.5V9a.5.5 0 0 1 .5-.5zM14 13.5a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3a.5.5 0 0 1 .5-.5z',
+  file: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 2v4h4',
+  library: 'M4 3h4v18H4V3zm6 0h4v18h-4V3zm6 1l4 16-3.88.97L12 5.5 16 4z',
+  users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7-3a7 7 0 0 0-.1-1.2l2-1.6-2-3.5-2.4.9a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.4a7 7 0 0 0-2 1.2l-2.4-.9-2 3.5 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.5 2.4-.9a7 7 0 0 0 2 1.2L10 21h4l.5-2.4a7 7 0 0 0 2-1.2l2.4.9 2-3.5-2-1.6a7 7 0 0 0 .1-1.2z',
+  inbox: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
+};
+
+const groups: NavGroup[] = [
+  {
+    items: [
+      { label: 'Overzicht', href: '/', iconPath: icons.dashboard },
+      { label: 'Families', href: '/families', iconPath: icons.building, badge: 3 },
+      { label: 'Vragenlijsten', href: '/vragenlijsten', iconPath: icons.list },
+      { label: 'AI-analyses', href: '/ai', iconPath: icons.sparkles, badge: 'AI' },
+      { label: 'Bibliotheek', href: '/bibliotheek', iconPath: icons.library },
+    ],
+  },
+  {
+    label: 'Beheer',
+    items: [
+      { label: 'Team', href: '/team', iconPath: icons.users },
+      { label: 'Inbox', href: '/inbox', iconPath: icons.inbox, badge: 2 },
+      { label: 'Instellingen', href: '/instellingen', iconPath: icons.settings },
+    ],
+  },
+];
+
+const pathname = Astro.url.pathname;
+const isActive = (href: string) =>
+  pathname === href || (href !== '/' && pathname.startsWith(href));
+---
+
+<aside
+  data-pinned="false"
+  class="dw-sidebar hidden h-screen shrink-0 flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-surface)] md:flex"
+>
+  <div class="flex h-14 items-center border-b border-[var(--color-border)]">
+    <a href="/" aria-label="Dockwize Familiebedrijven" class="flex h-14 items-center gap-2.5">
+      <span class="flex w-16 items-center justify-center">
+        <DockwizeMark size={28} />
+      </span>
+      <span class="dw-sidebar-fade flex flex-col leading-none">
+        <span class="text-[16px] font-semibold tracking-tight text-[var(--color-ink)]">Dockwize</span>
+        <span class="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--color-ink-3)]">Familiebedrijven</span>
+      </span>
+    </a>
+  </div>
+
+  <nav class="flex-1 overflow-y-auto overflow-x-hidden p-2">
+    {groups.map((group, gi) => (
+      <div class={gi > 0 ? 'mt-4' : ''}>
+        {group.label && (
+          <p class="dw-sidebar-fade px-2.5 pb-1.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            {group.label}
+          </p>
+        )}
+        <ul class="space-y-0.5">
+          {group.items.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <li>
+                <a
+                  href={item.href}
+                  title={item.label}
+                  class={`group relative flex items-center gap-2.5 overflow-hidden rounded-[8px] px-2.5 py-2 text-[13px] font-medium transition-all ${
+                    active
+                      ? 'bg-[var(--color-ink)] text-white shadow-[var(--shadow-sm)]'
+                      : 'text-[var(--color-ink-2)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]'
+                  }`}
+                >
+                  <svg
+                    class={`h-4 w-4 shrink-0 ${active ? 'text-white' : 'text-[var(--color-ink-3)]'}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d={item.iconPath} />
+                  </svg>
+                  <span class="dw-sidebar-fade flex-1 truncate">{item.label}</span>
+                  {item.badge !== undefined && (
+                    <span class={`dw-sidebar-fade inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+                      typeof item.badge === 'string'
+                        ? 'bg-[var(--color-accent)] text-[var(--color-ink)]'
+                        : active
+                          ? 'bg-white/20 text-white'
+                          : 'bg-[var(--color-surface-2)] text-[var(--color-ink-2)]'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))}
+  </nav>
+
+  <div class="border-t border-[var(--color-border)] p-2">
+    <button
+      id="dw-sidebar-pin"
+      type="button"
+      class="flex w-full items-center gap-2.5 overflow-hidden rounded-[8px] px-2.5 py-1.5 text-[12px] font-medium transition-colors text-[var(--color-ink-3)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]"
+      title="Sidebar vastpinnen"
+    >
+      <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 17v5M9 10.76V8a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2.76l3 4.24v2H6v-2l3-4.24z" />
+      </svg>
+      <span class="dw-sidebar-fade" id="dw-pin-label">Vastpinnen</span>
+    </button>
+  </div>
+</aside>
+
+<script>
+  const KEY = 'dockwize_sidebar_pinned';
+  const aside = document.querySelector<HTMLElement>('.dw-sidebar');
+  const btn = document.getElementById('dw-sidebar-pin');
+  const lbl = document.getElementById('dw-pin-label');
+  const stored = typeof localStorage !== 'undefined' && localStorage.getItem(KEY) === '1';
+  if (aside) aside.dataset.pinned = stored ? 'true' : 'false';
+  if (lbl) lbl.textContent = stored ? 'Loslaten' : 'Vastpinnen';
+  btn?.addEventListener('click', () => {
+    if (!aside) return;
+    const next = aside.dataset.pinned !== 'true';
+    aside.dataset.pinned = next ? 'true' : 'false';
+    localStorage.setItem(KEY, next ? '1' : '0');
+    if (lbl) lbl.textContent = next ? 'Loslaten' : 'Vastpinnen';
+  });
+</script>

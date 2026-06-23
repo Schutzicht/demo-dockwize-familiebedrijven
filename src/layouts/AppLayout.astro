@@ -1,0 +1,44 @@
+---
+import '../styles/global.css';
+import Sidebar from '../components/Sidebar.astro';
+import Topbar from '../components/Topbar.astro';
+import Tour from '../components/Tour.astro';
+
+interface Props {
+  title: string;
+  topbarTitle?: string;
+  topbarSubtitle?: string;
+  description?: string;
+}
+const { title, topbarTitle, topbarSubtitle, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="nl" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+  </head>
+  <body class="min-h-full">
+    <div class="flex h-screen overflow-hidden bg-[var(--color-bg)]">
+      <Sidebar />
+      <div class="flex flex-1 flex-col overflow-hidden">
+        <Topbar title={topbarTitle} subtitle={topbarSubtitle}>
+          <slot name="topbar-action" slot="action" />
+        </Topbar>
+        <main class="flex-1 overflow-y-auto">
+          <slot />
+        </main>
+      </div>
+    </div>
+    <Tour />
+  </body>
+</html>

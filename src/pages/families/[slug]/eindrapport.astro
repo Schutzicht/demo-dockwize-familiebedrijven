@@ -1,0 +1,162 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Card from '../../../components/Card.astro';
+import ScoreWheel from '../../../components/ScoreWheel.astro';
+import ScoreBadge from '../../../components/ScoreBadge.astro';
+import FamilyTabs from '../../../components/FamilyTabs.astro';
+import { allFamilies } from '../../../data/wattel';
+import { CATEGORY_DEFINITIONS, categoryScoreFromAnswers } from '../../../data/types';
+
+export function getStaticPaths() {
+  return allFamilies.map((f) => ({ params: { slug: f.slug } }));
+}
+
+const family = allFamilies.find((f) => f.slug === Astro.params.slug);
+if (!family) return Astro.redirect('/families');
+
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+
+const koRun = family.questionnaires.find((q) => q.moment === 'KO');
+const koSegments = CATEGORY_DEFINITIONS.map((c) => ({
+  categoryId: c.id,
+  score: koRun ? categoryScoreFromAnswers(koRun.answers, koRun.questions, c.id).score : 'grey',
+}));
+const teamSegments = CATEGORY_DEFINITIONS.map((c) => {
+  const a = family.assessments.find((x) => x.categoryId === c.id);
+  return { categoryId: c.id, score: a?.teamScore ?? 'grey' };
+});
+
+const slides = [
+  { number: 1, type: 'titel', title: 'Titel' },
+  { number: 2, type: 'doel', title: 'Doel APK-traject' },
+  { number: 3, type: 'categorieen', title: 'Toelichting categorieën' },
+  { number: 4, type: 'traject', title: 'APK-traject' },
+  { number: 5, type: 'agenda', title: 'Agenda terugkoppeling' },
+  { number: 6, type: 'wielen', title: 'Zelfbeoordeling vs team', generated: true },
+  { number: 7, type: 'scenario', title: 'Aangenomen scenario' },
+  ...CATEGORY_DEFINITIONS.map((c) => ({ number: 7 + c.id, type: 'cat', title: `${c.id}. ${c.shortTitle}`, generated: true })),
+  { number: 17, type: 'haalbaarheid', title: 'Haalbaarheidstoets overdragers' },
+  { number: 18, type: 'haalbaarheid', title: 'Haalbaarheidstoets opvolgers' },
+  { number: 19, type: 'samenvatting', title: 'Totaaloordeel', generated: true },
+  { number: 20, type: 'actie', title: 'Actieplan', generated: true },
+  { number: 21, type: 'opvolg', title: 'Opvolgmomenten' },
+  { number: 22, type: 'evaluatie', title: 'Korte evaluatie familie' },
+  { number: 23, type: 'team', title: 'Dankwoord team' },
+];
+---
+
+<AppLayout
+  title={`Eindrapport — ${family.name}`}
+  topbarTitle={family.name}
+  topbarSubtitle="Eindrapport in Dockwize PowerPoint-template"
+>
+  <FamilyTabs family={family} active="eindrapport" />
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <Card padding="lg">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Automatisering #5</p>
+          <h2 class="mt-1 text-[22px] font-semibold tracking-tight">Eindrapport, Dockwize template</h2>
+          <p class="mt-2 max-w-2xl text-[13px] leading-relaxed text-[var(--color-ink-2)]">
+            Genereer het eindrapport in het PowerPoint-template Familiebedrijven. Standaardslides worden automatisch ingevuld vanuit de tool, met daarnaast ruimte voor eigen slides. De samenvattings-slide bevat de team-beoordeling kleurplaat.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button class="inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12.5px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)]">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M14 10l7-7M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
+            Open in Slides-viewer
+          </button>
+          <button class="inline-flex items-center gap-2 rounded-[10px] bg-[var(--color-ink)] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-black">
+            <svg class="h-4 w-4 text-[var(--color-accent)]" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h18v3H3zM3 9h18v12H3zm3 3v6h12v-6z"/></svg>
+            Download .pptx
+          </button>
+        </div>
+      </div>
+    </Card>
+
+    <Card padding="none">
+      <div class="border-b border-[var(--color-border)] px-5 py-4">
+        <h3 class="text-[14px] font-semibold tracking-tight">Slide-overzicht</h3>
+        <p class="text-[12px] text-[var(--color-ink-3)]">{slides.length} slides totaal. Slides gemarkeerd met AI-label worden uit de tool gegenereerd.</p>
+      </div>
+      <div class="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {slides.map((s) => (
+          <div class="group relative overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-2)] transition-all hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-md)]">
+            <div class="flex aspect-[16/9] items-center justify-center bg-[var(--color-surface)] p-3">
+              {s.type === 'titel' ? (
+                <div class="text-center">
+                  <p class="text-[7px] uppercase tracking-widest text-[var(--color-ink-3)]">Terugkoppeling {fmt(family.terugkoppelingDate)}</p>
+                  <p class="mt-1 text-[12px] font-semibold tracking-tight">APK Bedrijfsoverdracht</p>
+                  <p class="text-[11px] italic">{family.name}</p>
+                </div>
+              ) : s.type === 'wielen' ? (
+                <div class="flex items-center gap-2">
+                  <ScoreWheel segments={koSegments} centerTitle="KO" variant="dark" size={70} />
+                  <ScoreWheel segments={teamSegments} centerTitle="TK" variant="dark" size={70} />
+                </div>
+              ) : s.type === 'samenvatting' ? (
+                <div class="flex items-center gap-3">
+                  <ScoreWheel segments={teamSegments} centerTitle="TK" variant="dark" size={80} />
+                  <div class="text-left">
+                    <p class="text-[8px] uppercase tracking-wider text-[var(--color-ink-3)]">Totaaloordeel</p>
+                    <p class="mt-0.5 text-[9px] font-medium">3 hoofdthema&apos;s</p>
+                  </div>
+                </div>
+              ) : s.type === 'cat' ? (
+                <div class="text-center">
+                  <p class="text-[8px] uppercase tracking-wider text-[var(--color-ink-3)]">Categorie</p>
+                  <p class="text-[11px] font-semibold">{s.title}</p>
+                </div>
+              ) : (
+                <p class="text-[10.5px] font-medium text-center text-[var(--color-ink-2)]">{s.title}</p>
+              )}
+            </div>
+            <div class="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+              <span class="text-[10.5px] font-medium text-[var(--color-ink-2)]">{String(s.number).padStart(2, '0')} · {s.title}</span>
+              {s.generated && <span class="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-1.5 py-0.5 text-[8.5px] font-semibold text-[var(--color-ink)]">AI</span>}
+            </div>
+          </div>
+        ))}
+        <button class="flex aspect-[16/9] flex-col items-center justify-center gap-2 rounded-[12px] border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)]/40 text-[var(--color-ink-3)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span class="text-[11px] font-medium">Eigen slide toevoegen</span>
+        </button>
+      </div>
+    </Card>
+
+    <Card padding="lg">
+      <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Inhoud check</p>
+      <h3 class="mt-1 text-[14px] font-semibold tracking-tight">Wat staat er op de samenvatting-slide?</h3>
+      <p class="mt-1 text-[12.5px] text-[var(--color-ink-3)]">De automatisering plaatst de team-beoordeling kleurplaat op slide 19, samen met de 3 hoofdthema&apos;s uit het laatste AI-rapport.</p>
+      <div class="mt-5 grid gap-6 lg:grid-cols-2">
+        <div class="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+          <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Slide 19 — voorbeeld</p>
+          <div class="mt-4 flex items-center gap-5">
+            <ScoreWheel segments={teamSegments} centerTitle="TK" centerSubtitle="Beoordeling" variant="dark" size={180} />
+            <div class="space-y-2 text-[11.5px]">
+              <p class="font-semibold">Drie hoofdthema&apos;s</p>
+              <p><span class="font-medium">1. Financieel &amp; fiscaal:</span> plannen uitwerken, scenario&apos;s, waardering met fiscus.</p>
+              <p><span class="font-medium">2. Constructie:</span> snellere toetreding VOF i.p.v. huren.</p>
+              <p><span class="font-medium">3. Samenwerking &amp; regie:</span> praktische afspraken, familiestatuut.</p>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-3">
+          {family.assessments.slice(0, 5).map((a) => {
+            const cat = CATEGORY_DEFINITIONS.find((c) => c.id === a.categoryId)!;
+            return (
+              <div class="flex items-start justify-between gap-3 rounded-[10px] bg-[var(--color-surface-2)] p-3">
+                <div class="text-[12px]">
+                  <p class="font-medium">{cat.id}. {cat.title}</p>
+                  <p class="mt-0.5 text-[11.5px] text-[var(--color-ink-3)]">{a.advies.slice(0, 80)}{a.advies.length > 80 ? '…' : ''}</p>
+                </div>
+                <ScoreBadge score={a.teamScore} size="sm" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
+  </div>
+</AppLayout>

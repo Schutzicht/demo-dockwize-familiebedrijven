@@ -1,0 +1,136 @@
+---
+import type { Score, CategoryId } from '../data/types';
+import { CATEGORY_DEFINITIONS } from '../data/types';
+
+interface SegmentData {
+  categoryId: CategoryId;
+  score: Score;
+}
+
+interface Props {
+  segments: SegmentData[];
+  centerTitle: string;
+  centerSubtitle?: string;
+  size?: number;
+  variant?: 'light' | 'dark';
+}
+
+const { segments, centerTitle, centerSubtitle, size = 380, variant = 'light' } = Astro.props;
+
+const cx = size / 2;
+const cy = size / 2;
+const outerR = size * 0.46;
+const innerR = size * 0.22;
+
+const colorMap: Record<Score, string> = {
+  green: 'var(--color-score-green)',
+  yellow: 'var(--color-score-yellow)',
+  red: 'var(--color-score-red)',
+  grey: 'var(--color-score-grey)',
+};
+
+const total = segments.length;
+const segAngle = (2 * Math.PI) / total;
+const startOffset = -Math.PI / 2 - segAngle / 2;
+
+function polar(cx: number, cy: number, r: number, angle: number) {
+  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+}
+
+function segmentPath(i: number, rOuter: number, rInner: number) {
+  const a0 = startOffset + i * segAngle;
+  const a1 = startOffset + (i + 1) * segAngle;
+  const p0 = polar(cx, cy, rOuter, a0);
+  const p1 = polar(cx, cy, rOuter, a1);
+  const p2 = polar(cx, cy, rInner, a1);
+  const p3 = polar(cx, cy, rInner, a0);
+  const large = segAngle > Math.PI ? 1 : 0;
+  return [
+    `M ${p0.x} ${p0.y}`,
+    `A ${rOuter} ${rOuter} 0 ${large} 1 ${p1.x} ${p1.y}`,
+    `L ${p2.x} ${p2.y}`,
+    `A ${rInner} ${rInner} 0 ${large} 0 ${p3.x} ${p3.y}`,
+    'Z',
+  ].join(' ');
+}
+
+function labelPosition(i: number) {
+  const a = startOffset + (i + 0.5) * segAngle;
+  const r = (outerR + innerR) / 2;
+  const p = polar(cx, cy, r, a);
+  const deg = (a * 180) / Math.PI + 90;
+  const flip = deg > 90 && deg < 270;
+  const rot = flip ? deg + 180 : deg;
+  return { x: p.x, y: p.y, rotate: rot };
+}
+
+const catTitleById = new Map(CATEGORY_DEFINITIONS.map((c) => [c.id, c.shortTitle]));
+const innerFill = variant === 'dark' ? 'var(--color-ink)' : '#ffffff';
+const innerText = variant === 'dark' ? '#ffffff' : 'var(--color-ink)';
+const innerSubtext = variant === 'dark' ? 'rgba(255,255,255,0.65)' : 'var(--color-ink-3)';
+const innerStroke = variant === 'dark' ? 'var(--color-ink)' : 'var(--color-border)';
+---
+
+<figure class="flex flex-col items-center">
+  <svg
+    viewBox={`0 0 ${size} ${size}`}
+    width={size}
+    height={size}
+    class="max-w-full h-auto"
+    role="img"
+    aria-label={`Score wiel ${centerTitle}`}
+  >
+    {segments.map((seg, i) => {
+      const path = segmentPath(i, outerR, innerR);
+      const lbl = labelPosition(i);
+      const title = catTitleById.get(seg.categoryId) ?? '';
+      return (
+        <g>
+          <path
+            d={path}
+            fill={colorMap[seg.score]}
+            stroke="#ffffff"
+            stroke-width="2"
+          >
+            <title>{`${seg.categoryId}. ${title} — ${seg.score}`}</title>
+          </path>
+          <text
+            x={lbl.x}
+            y={lbl.y}
+            text-anchor="middle"
+            dominant-baseline="middle"
+            transform={`rotate(${lbl.rotate} ${lbl.x} ${lbl.y})`}
+            fill="#ffffff"
+            class="text-[10.5px] font-semibold"
+            style="font-family: var(--font-sans);"
+          >
+            <tspan x={lbl.x} dy="-0.4em">{`${seg.categoryId}.`}</tspan>
+            <tspan x={lbl.x} dy="1.1em">{title}</tspan>
+          </text>
+        </g>
+      );
+    })}
+
+    <circle cx={cx} cy={cy} r={innerR - 1} fill={innerFill} stroke={innerStroke} stroke-width="1.5" />
+    <text
+      x={cx}
+      y={cy - 4}
+      text-anchor="middle"
+      fill={innerText}
+      style="font-family: var(--font-display); font-size: 15px; font-weight: 600; letter-spacing: -0.02em;"
+    >
+      {centerTitle}
+    </text>
+    {centerSubtitle && (
+      <text
+        x={cx}
+        y={cy + 14}
+        text-anchor="middle"
+        fill={innerSubtext}
+        style="font-family: var(--font-sans); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase;"
+      >
+        {centerSubtitle}
+      </text>
+    )}
+  </svg>
+</figure>

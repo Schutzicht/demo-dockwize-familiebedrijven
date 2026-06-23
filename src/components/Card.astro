@@ -1,0 +1,12 @@
+---
+interface Props {
+  class?: string;
+  padding?: 'sm' | 'md' | 'lg' | 'none';
+  [key: string]: unknown;
+}
+const { class: className = '', padding = 'md', ...rest } = Astro.props;
+const padMap = { none: '', sm: 'p-4', md: 'p-5', lg: 'p-7' };
+---
+<div class={`rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] ${padMap[padding]} ${className}`} {...rest}>
+  <slot />
+</div>

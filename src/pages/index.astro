@@ -1,0 +1,163 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/Card.astro';
+import ScoreBadge from '../components/ScoreBadge.astro';
+import { allFamilies } from '../data/wattel';
+import { categoryScoreFromAnswers, CATEGORY_DEFINITIONS } from '../data/types';
+
+const today = new Date('2026-05-26');
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+
+const stats = {
+  active: allFamilies.filter((f) => f.status === 'lopend').length,
+  completed: allFamilies.filter((f) => f.status === 'afgerond').length,
+  pendingQuestionnaires: 0,
+  openActions: allFamilies.reduce((s, f) => s + f.actions.filter((a) => a.status !== 'done').length, 0),
+};
+
+function getMomentScores(family: typeof allFamilies[number], moment: 'KO' | 'WS1' | 'TK') {
+  const run = family.questionnaires.find((q) => q.moment === moment);
+  if (!run) return null;
+  return CATEGORY_DEFINITIONS.map((c) => ({
+    categoryId: c.id,
+    ...categoryScoreFromAnswers(run.answers, run.questions, c.id),
+  }));
+}
+---
+
+<AppLayout
+  title="Overzicht — Dockwize Familiebedrijven"
+  topbarTitle="Overzicht"
+  topbarSubtitle="APK Familiebedrijven, alle lopende en afgeronde trajecten"
+>
+  <Fragment slot="topbar-action">
+    <button class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white transition hover:bg-black">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      Nieuw traject
+    </button>
+  </Fragment>
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Lopende trajecten</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{stats.active}</p>
+      </Card>
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Afgerond</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{stats.completed}</p>
+      </Card>
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Vragenlijsten open</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{stats.pendingQuestionnaires}</p>
+      </Card>
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Acties open</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{stats.openActions}</p>
+      </Card>
+    </div>
+
+    <Card padding="none" class="overflow-hidden" data-tour="families-table">
+      <div class="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+        <div>
+          <h2 class="text-[15px] font-semibold tracking-tight">Actieve trajecten</h2>
+          <p class="text-[12px] text-[var(--color-ink-3)]">Klik op een familie voor de werkmap met vragenlijsten, logfile en AI-rapport.</p>
+        </div>
+        <a href="/families" class="text-[12.5px] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Alles bekijken →</a>
+      </div>
+      <table class="w-full text-[13px]">
+        <thead>
+          <tr class="border-b border-[var(--color-border)] text-left text-[11px] uppercase tracking-widest text-[var(--color-muted)]">
+            <th class="px-5 py-3 font-medium">Familie</th>
+            <th class="px-5 py-3 font-medium">Status</th>
+            <th class="px-5 py-3 font-medium">Kick-off</th>
+            <th class="px-5 py-3 font-medium">Workshop 1</th>
+            <th class="px-5 py-3 font-medium">Terugkoppeling</th>
+            <th class="px-5 py-3 font-medium">Acties open</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {allFamilies.map((f) => {
+            const openActions = f.actions.filter((a) => a.status !== 'done').length;
+            return (
+              <tr class="border-b border-[var(--color-border)]/60 transition-colors hover:bg-[var(--color-surface-2)]">
+                <td class="px-5 py-3.5">
+                  <a href={`/families/${f.slug}`} class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[var(--color-accent-soft)] text-[11px] font-bold uppercase text-[var(--color-ink)]">
+                      {f.name.split(' ').pop()?.slice(0, 2)}
+                    </span>
+                    <span>
+                      <span class="block font-semibold text-[var(--color-ink)]">{f.name}</span>
+                      <span class="block text-[11.5px] text-[var(--color-ink-3)]">{f.business}</span>
+                    </span>
+                  </a>
+                </td>
+                <td class="px-5 py-3.5">
+                  <span class="inline-flex rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[11px] font-medium capitalize text-[var(--color-ink-2)]">{f.status}</span>
+                </td>
+                <td class="px-5 py-3.5 tabular-nums text-[var(--color-ink-2)]">{fmt(f.kickoffDate)}</td>
+                <td class="px-5 py-3.5 tabular-nums text-[var(--color-ink-2)]">{fmt(f.workshopDate)}</td>
+                <td class="px-5 py-3.5 tabular-nums text-[var(--color-ink-2)]">{fmt(f.terugkoppelingDate)}</td>
+                <td class="px-5 py-3.5 text-[var(--color-ink-2)]">{openActions}</td>
+                <td class="px-5 py-3.5 text-right">
+                  <a href={`/families/${f.slug}`} class="inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">
+                    Open
+                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </a>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </Card>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <Card data-tour="how">
+        <h3 class="text-[14px] font-semibold tracking-tight">Hoe werkt de tool</h3>
+        <p class="mt-1 text-[12.5px] text-[var(--color-ink-3)]">Vier stappen die we voor jullie automatiseren.</p>
+        <ol class="mt-5 space-y-3 text-[13px]">
+          <li class="flex gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-[var(--color-ink)]">1</span>
+            <span><strong>Voorloop-vragenlijst &raquo; KO-kleurplaat:</strong> automatisch gescoord op 9 categorieën, klaar voor de kick-off.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-[var(--color-ink)]">2</span>
+            <span><strong>Uitgebreide vragenlijst &raquo; WS1-kleurplaat:</strong> dieper inzicht, voorbereiding workshop 1.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-[var(--color-ink)]">3</span>
+            <span><strong>Logfile &raquo; AI-rapport:</strong> teambevindingen verzamelen, AI maakt conceptrapport.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-[var(--color-ink)]">4</span>
+            <span><strong>Team-beoordeling &raquo; eindrapport:</strong> AI stelt team-beoordeling voor, exporteer naar PowerPoint.</span>
+          </li>
+        </ol>
+      </Card>
+      <Card>
+        <h3 class="text-[14px] font-semibold tracking-tight">Komende sessies</h3>
+        <p class="mt-1 text-[12.5px] text-[var(--color-ink-3)]">Volgende stappen voor lopende trajecten.</p>
+        <ul class="mt-5 space-y-3 text-[13px]">
+          <li class="flex items-center justify-between rounded-[10px] bg-[var(--color-surface-2)] px-4 py-3">
+            <div>
+              <p class="font-medium">Eerste opvolgmoment Familie Wattel</p>
+              <p class="text-[11.5px] text-[var(--color-ink-3)]">Eind april 2026</p>
+            </div>
+            <ScoreBadge score="yellow" label="Pre-sessie voorbereiden" size="sm" />
+          </li>
+          <li class="flex items-center justify-between rounded-[10px] bg-[var(--color-surface-2)] px-4 py-3">
+            <div>
+              <p class="font-medium">Geen verdere geplande sessies</p>
+              <p class="text-[11.5px] text-[var(--color-ink-3)]">Voeg een nieuw traject toe via &quot;Nieuw traject&quot;</p>
+            </div>
+          </li>
+        </ul>
+      </Card>
+    </div>
+  </div>
+</AppLayout>

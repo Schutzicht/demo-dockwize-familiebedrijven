@@ -1,0 +1,145 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Card from '../../../components/Card.astro';
+import ScoreBadge from '../../../components/ScoreBadge.astro';
+import ScoreWheel from '../../../components/ScoreWheel.astro';
+import FamilyTabs from '../../../components/FamilyTabs.astro';
+import { allFamilies } from '../../../data/wattel';
+import { CATEGORY_DEFINITIONS, categoryScoreFromAnswers } from '../../../data/types';
+import { getKnelpunt, getVerbeteractie } from '../../../data/referentie';
+
+export function getStaticPaths() {
+  return allFamilies.map((f) => ({ params: { slug: f.slug } }));
+}
+
+const family = allFamilies.find((f) => f.slug === Astro.params.slug);
+if (!family) return Astro.redirect('/families');
+
+const teamSegments = CATEGORY_DEFINITIONS.map((c) => {
+  const a = family.assessments.find((x) => x.categoryId === c.id);
+  return { categoryId: c.id, score: a?.teamScore ?? 'grey' };
+});
+
+const latestAI = family.aiReports[family.aiReports.length - 1];
+const koRun = family.questionnaires.find((q) => q.moment === 'KO');
+const koSegments = CATEGORY_DEFINITIONS.map((c) => ({
+  categoryId: c.id,
+  score: koRun ? categoryScoreFromAnswers(koRun.answers, koRun.questions, c.id).score : 'grey',
+}));
+---
+
+<AppLayout
+  title={`Team-beoordeling — ${family.name}`}
+  topbarTitle={family.name}
+  topbarSubtitle="Definitieve team-beoordeling, gebaseerd op laatste AI-rapport"
+>
+  <FamilyTabs family={family} active="team-beoordeling" />
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <Card padding="lg">
+      <div class="grid items-start gap-8 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+          <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Automatisering #4</p>
+          <h2 class="mt-1 text-[22px] font-semibold tracking-tight">Team-beoordeling kleurplaat</h2>
+          <p class="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-2)]">
+            De definitieve <strong>team-beoordeling</strong> wordt voorgesteld op basis van het meest recente AI-rapport (zonder begin-aantekeningen).
+            Adviseurs kunnen elk segment handmatig overschrijven. Deze kleurplaat komt op de samenvattingsslide van het eindrapport.
+          </p>
+          <div class="mt-5 flex flex-wrap items-center gap-3">
+            <button class="inline-flex items-center gap-2 rounded-[10px] bg-[var(--color-accent)] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-ink)] hover:brightness-95">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3.5-7.1M21 3v6h-6"/></svg>
+              Hergenereer voorstel uit laatste AI-rapport
+            </button>
+            <a href={`/families/${family.slug}/eindrapport`} class="inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12.5px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)]">
+              Naar eindrapport
+              <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="flex justify-center">
+          <ScoreWheel segments={teamSegments} centerTitle="Team" centerSubtitle="Beoordeling" variant="dark" size={300} />
+        </div>
+      </div>
+    </Card>
+
+    <Card padding="none">
+      <div class="border-b border-[var(--color-border)] px-5 py-4">
+        <h3 class="text-[14px] font-semibold tracking-tight">Beoordeling per categorie</h3>
+        <p class="text-[12px] text-[var(--color-ink-3)]">Voor elke categorie: het advies, de bron (handmatig of AI) en de toegekende kleur.</p>
+      </div>
+      <div class="divide-y divide-[var(--color-border)]/60">
+        {family.assessments.map((a) => {
+          const cat = CATEGORY_DEFINITIONS.find((c) => c.id === a.categoryId)!;
+          const knel = (a.knelpuntCodes ?? []).map((c) => ({ code: c, info: getKnelpunt(c) }));
+          const verb = (a.verbeteractieCodes ?? []).map((c) => ({ code: c, info: getVerbeteractie(c) }));
+          return (
+            <div class="grid gap-4 px-5 py-4 lg:grid-cols-12">
+              <div class="lg:col-span-3">
+                <div class="flex items-center gap-2">
+                  <span class="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ink)] text-[11px] font-semibold text-white">{a.categoryId}</span>
+                  <h4 class="text-[13.5px] font-semibold">{cat.title}</h4>
+                </div>
+                <p class="mt-2 text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Bron</p>
+                <p class="mt-0.5 text-[11.5px] text-[var(--color-ink-2)]">{a.source === 'ai-generated' ? 'AI-gegenereerd, bewerkt' : 'Handmatig vastgesteld'}</p>
+              </div>
+              <div class="lg:col-span-5">
+                <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Risico&apos;s</p>
+                <p class="mt-1 text-[12.5px] leading-relaxed text-[var(--color-ink)]">{a.risicos}</p>
+              </div>
+              <div class="lg:col-span-3">
+                <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Advies</p>
+                <p class="mt-1 text-[12.5px] leading-relaxed text-[var(--color-ink)]">{a.advies}</p>
+              </div>
+              <div class="lg:col-span-1 flex flex-col items-end gap-1">
+                <ScoreBadge score={a.teamScore} size="sm" />
+                <button class="text-[11px] text-[var(--color-ink-3)] hover:text-[var(--color-ink)]">Bewerken</button>
+              </div>
+
+              {(knel.length > 0 || verb.length > 0) && (
+                <div class="lg:col-span-12 flex flex-wrap items-center gap-1.5 border-t border-dashed border-[var(--color-border)] pt-3">
+                  <span class="mr-1 text-[10px] uppercase tracking-widest text-[var(--color-muted)]">Referentiecodes</span>
+                  {knel.map((k) => (
+                    <a
+                      href={`/bibliotheek?zoek=${k.code}`}
+                      title={k.info?.omschrijving ?? ''}
+                      class="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] py-1 pl-1.5 pr-2.5 text-[11px] text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-border-strong)]"
+                    >
+                      <span class="rounded-full bg-[var(--color-surface-2)] px-1.5 font-mono text-[10px] font-semibold text-[var(--color-ink-2)]">{k.code}</span>
+                      <span class="max-w-[18ch] truncate sm:max-w-none">{k.info?.kort ?? 'knelpunt'}</span>
+                    </a>
+                  ))}
+                  {verb.map((v) => (
+                    <a
+                      href={`/bibliotheek?zoek=${v.code}`}
+                      title={v.info?.omschrijving ?? ''}
+                      class="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-score-green-soft)] bg-[var(--color-score-green-soft)] py-1 pl-1.5 pr-2.5 text-[11px] text-[var(--color-score-green)] transition-opacity hover:opacity-80"
+                    >
+                      <span class="rounded-full bg-white/70 px-1.5 font-mono text-[10px] font-semibold">{v.code}</span>
+                      <span class="max-w-[18ch] truncate sm:max-w-none">{v.info?.kort ?? 'verbeteractie'}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+
+    <Card padding="lg">
+      <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Vergelijking</p>
+      <h3 class="mt-1 text-[15px] font-semibold tracking-tight">Reis door het traject</h3>
+      <p class="mt-1 text-[12.5px] text-[var(--color-ink-3)]">Zelfbeoordeling bij kick-off versus de definitieve team-beoordeling.</p>
+      <div class="mt-6 grid items-center gap-8 sm:grid-cols-2">
+        <div class="flex flex-col items-center gap-2">
+          <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">KO — Zelfbeoordeling</p>
+          <ScoreWheel segments={koSegments} centerTitle="KO" centerSubtitle="Kick-off" variant="dark" size={240} />
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">TK — Team-beoordeling</p>
+          <ScoreWheel segments={teamSegments} centerTitle="TK" centerSubtitle="Eindstand" variant="dark" size={240} />
+        </div>
+      </div>
+    </Card>
+  </div>
+</AppLayout>

@@ -1,0 +1,47 @@
+---
+import type { Category } from '../data/types';
+import ScoreBadge from './ScoreBadge.astro';
+
+interface Props {
+  category: Category;
+}
+const { category } = Astro.props;
+---
+
+<article
+  id={`cat-${category.id}`}
+  class="scroll-mt-24 rounded-2xl border border-dock-border bg-dock-card p-6 sm:p-8 shadow-sm"
+>
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-xs uppercase tracking-widest text-dock-muted">Categorie {category.id}</p>
+      <h3 class="mt-1 text-2xl sm:text-3xl">{category.title}</h3>
+      <p class="mt-2 max-w-2xl text-sm text-dock-muted">{category.checkQuestion}</p>
+    </div>
+    <div class="flex flex-col items-start gap-2 sm:items-end">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] uppercase tracking-widest text-dock-muted w-7">KO</span>
+        <ScoreBadge score={category.scoreKO} />
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] uppercase tracking-widest text-dock-muted w-7">TK</span>
+        <ScoreBadge score={category.scoreTK} />
+      </div>
+    </div>
+  </header>
+
+  <div class="mt-6 grid gap-6 md:grid-cols-3">
+    <div>
+      <h4 class="text-xs uppercase tracking-widest text-dock-muted">Gewenst</h4>
+      <p class="mt-2 text-sm leading-relaxed">{category.gewenst}</p>
+    </div>
+    <div>
+      <h4 class="text-xs uppercase tracking-widest text-dock-muted">Risico's & aandachtspunten</h4>
+      <p class="mt-2 text-sm leading-relaxed">{category.risicos}</p>
+    </div>
+    <div>
+      <h4 class="text-xs uppercase tracking-widest text-dock-muted">Advies</h4>
+      <p class="mt-2 text-sm leading-relaxed">{category.advies}</p>
+    </div>
+  </div>
+</article>

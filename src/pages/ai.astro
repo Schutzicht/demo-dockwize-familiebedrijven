@@ -1,0 +1,83 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/Card.astro';
+import ScoreBadge from '../components/ScoreBadge.astro';
+import { allFamilies } from '../data/wattel';
+import { CATEGORY_DEFINITIONS } from '../data/types';
+
+const allReports = allFamilies.flatMap((f) => f.aiReports.map((r) => ({ family: f, report: r })));
+const totalReports = allReports.length;
+const lastReport = allReports[allReports.length - 1];
+const categoryById = new Map(CATEGORY_DEFINITIONS.map((c) => [c.id, c]));
+---
+
+<AppLayout
+  title="AI-analyses — Dockwize Familiebedrijven"
+  topbarTitle="AI-analyses"
+  topbarSubtitle="Alle gegenereerde rapporten over alle families"
+>
+  <Fragment slot="topbar-action">
+    <button class="inline-flex items-center gap-2 rounded-[10px] bg-[var(--color-accent)] px-3 py-2 text-[12.5px] font-semibold text-[var(--color-ink)] hover:brightness-95">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6l-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg>
+      Nieuwe analyse
+    </button>
+  </Fragment>
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="grid gap-4 sm:grid-cols-3">
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Rapporten gegenereerd</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{totalReports}</p>
+      </Card>
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Laatste rapport</p>
+        <p class="mt-2 text-[13px] font-medium">{lastReport?.report.generatedAt ?? '—'}</p>
+        <p class="text-[11.5px] text-[var(--color-ink-3)]">{lastReport?.family.name}</p>
+      </Card>
+      <Card>
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Model</p>
+        <p class="mt-2 text-[13px] font-medium">Claude Opus 4.7</p>
+        <p class="text-[11.5px] text-[var(--color-ink-3)]">Anthropic, prompt v2</p>
+      </Card>
+    </div>
+
+    <Card padding="none">
+      <div class="border-b border-[var(--color-border)] px-5 py-4">
+        <h3 class="text-[14px] font-semibold tracking-tight">Recente analyses</h3>
+        <p class="text-[12px] text-[var(--color-ink-3)]">Klik op een rapport voor het volledige overzicht in de familie-werkmap.</p>
+      </div>
+      <div class="divide-y divide-[var(--color-border)]/60">
+        {allReports.length === 0 && (
+          <div class="px-5 py-12 text-center text-[13px] text-[var(--color-ink-3)]">Nog geen analyses gegenereerd.</div>
+        )}
+        {allReports.map(({ family, report }) => (
+          <a href={`/families/${family.slug}/ai-rapport`} class="grid grid-cols-12 items-center gap-4 px-5 py-4 hover:bg-[var(--color-surface-2)]">
+            <div class="col-span-3">
+              <p class="text-[13px] font-semibold">{family.name}</p>
+              <p class="text-[11.5px] text-[var(--color-ink-3)]">{family.business}</p>
+            </div>
+            <div class="col-span-3 text-[12px] text-[var(--color-ink-2)]">
+              <p>{report.generatedAt}</p>
+              <p class="text-[var(--color-ink-3)]">door {report.generatedBy}</p>
+            </div>
+            <div class="col-span-3 text-[12px] text-[var(--color-ink-2)]">
+              <p>Bronnen: {report.sourceMomentsConsidered.join(', ')}</p>
+              <p class="text-[var(--color-ink-3)]">{report.logEntryIds.length} logfile-notities</p>
+            </div>
+            <div class="col-span-3 flex flex-wrap justify-end gap-1">
+              {report.perCategory.map((p) => <ScoreBadge score={p.proposedScore} size="sm" label={String(p.categoryId)} />)}
+            </div>
+          </a>
+        ))}
+      </div>
+    </Card>
+
+    {lastReport && (
+      <Card padding="lg">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Laatste samenvatting</p>
+        <h3 class="mt-1 text-[15px] font-semibold tracking-tight">{lastReport.family.name} — {lastReport.report.generatedAt}</h3>
+        <p class="mt-3 text-[13px] leading-relaxed text-[var(--color-ink-2)]">{lastReport.report.summary}</p>
+      </Card>
+    )}
+  </div>
+</AppLayout>

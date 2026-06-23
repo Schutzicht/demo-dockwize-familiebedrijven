@@ -1,0 +1,89 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/Card.astro';
+import ReferentieBibliotheek from '../components/ReferentieBibliotheek.astro';
+import { CATEGORY_DEFINITIONS } from '../data/types';
+import { wattel } from '../data/wattel';
+
+const koRun = wattel.questionnaires.find((q) => q.moment === 'KO')!;
+const ws1Run = wattel.questionnaires.find((q) => q.moment === 'WS1')!;
+const tkRun = wattel.questionnaires.find((q) => q.moment === 'TK')!;
+
+const templates = [
+  { moment: 'KO', label: 'Voorloop-vragenlijst', desc: 'Ter input voor de kick-off op locatie', questions: koRun.questions, slidesUsed: 23 },
+  { moment: 'WS1', label: 'Uitgebreide vragenlijst', desc: 'Ter voorbereiding op workshop 1', questions: ws1Run.questions, slidesUsed: 14 },
+  { moment: 'TK', label: 'Evaluatie-vragenlijst', desc: 'Ter voorbereiding op de terugkoppelsessie', questions: tkRun.questions, slidesUsed: 8 },
+];
+---
+
+<AppLayout
+  title="Bibliotheek — Dockwize Familiebedrijven"
+  topbarTitle="Bibliotheek"
+  topbarSubtitle="Vraagbank, PowerPoint-template en standaard documenten"
+>
+  <div class="mx-auto max-w-7xl space-y-10 px-6 py-8">
+    <ReferentieBibliotheek />
+
+    <div class="space-y-6 border-t border-[var(--color-border)] pt-8">
+    <div>
+      <h2 class="text-[18px] font-semibold tracking-tight">Vraagbank per moment</h2>
+      <p class="mt-1 text-[12.5px] text-[var(--color-ink-3)]">Standaard vragenset die wordt uitgestuurd. Per familie kun je vragen verbergen of toevoegen.</p>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-3">
+      {templates.map((t) => (
+        <Card padding="lg">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)]">{t.moment}</span>
+            <span class="rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 text-[10.5px] font-semibold text-[var(--color-ink)]">{t.questions.length} vragen</span>
+          </div>
+          <h3 class="mt-2 text-[15px] font-semibold tracking-tight">{t.label}</h3>
+          <p class="mt-1 text-[12px] text-[var(--color-ink-3)]">{t.desc}</p>
+          <div class="mt-4 space-y-1.5">
+            {CATEGORY_DEFINITIONS.map((c) => {
+              const n = t.questions.filter((q) => q.category === c.id).length;
+              return (
+                <div class="flex items-center justify-between text-[11.5px]">
+                  <span class="text-[var(--color-ink-2)]"><span class="text-[var(--color-ink-3)]">{c.id}.</span> {c.shortTitle}</span>
+                  <span class="text-[var(--color-ink-3)] tabular-nums">{n}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div class="mt-5 flex gap-2">
+            <button class="flex-1 rounded-[8px] bg-[var(--color-ink)] px-3 py-1.5 text-[12px] font-medium text-white hover:bg-black">Bewerken</button>
+            <button class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)]">Voorbeeld</button>
+          </div>
+        </Card>
+      ))}
+    </div>
+
+    <Card padding="none" class="overflow-hidden">
+      <div class="border-b border-[var(--color-border)] px-5 py-4">
+        <h3 class="text-[14px] font-semibold tracking-tight">Documenten en templates</h3>
+        <p class="text-[12px] text-[var(--color-ink-3)]">Standaard bronnen die in elk traject beschikbaar zijn.</p>
+      </div>
+      <div class="divide-y divide-[var(--color-border)]/60">
+        {[
+          { name: 'Dockwize Familiebedrijven PowerPoint-template', type: 'pptx', size: '4.1 MB', updated: '12 jan 2026' },
+          { name: 'Vragenlijst KO — standaard set', type: 'docx', size: '32 KB', updated: '08 jan 2026' },
+          { name: 'Vragenlijst WS1 — standaard set', type: 'docx', size: '58 KB', updated: '08 jan 2026' },
+          { name: 'Familiestatuut — voorbeeld', type: 'pdf', size: '210 KB', updated: '15 nov 2025' },
+          { name: 'Haalbaarheidstoets Excel-template', type: 'xlsx', size: '128 KB', updated: '04 feb 2026' },
+        ].map((d) => (
+          <div class="flex items-center justify-between px-5 py-3 text-[13px] hover:bg-[var(--color-surface-2)]">
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--color-surface-2)] text-[10px] font-bold uppercase text-[var(--color-ink-2)]">{d.type}</span>
+              <div>
+                <p class="font-medium">{d.name}</p>
+                <p class="text-[11.5px] text-[var(--color-ink-3)]">{d.size} · bijgewerkt {d.updated}</p>
+              </div>
+            </div>
+            <button class="text-[12px] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Download</button>
+          </div>
+        ))}
+      </div>
+    </Card>
+    </div>
+  </div>
+</AppLayout>

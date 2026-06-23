@@ -1,0 +1,161 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Card from '../../../components/Card.astro';
+import FamilyTabs from '../../../components/FamilyTabs.astro';
+import { allFamilies } from '../../../data/wattel';
+import { CATEGORY_DEFINITIONS } from '../../../data/types';
+
+export function getStaticPaths() {
+  return allFamilies.map((f) => ({ params: { slug: f.slug } }));
+}
+
+const family = allFamilies.find((f) => f.slug === Astro.params.slug);
+if (!family) return Astro.redirect('/families');
+
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+
+const phaseLabels: Record<string, string> = {
+  kennismaking: 'Kennismaking',
+  'voorloop-vragenlijst': 'Voorloop-vragenlijst',
+  kickoff: 'Kick-off op locatie',
+  'uitgebreide-vragenlijst': 'Uitgebreide vragenlijst',
+  'workshop-1': 'Workshop 1',
+  verdieping: 'Verdiepingssessie',
+  rapport: 'Rapport',
+  terugkoppeling: 'Terugkoppelsessie',
+  opvolgmoment: 'Opvolgmoment',
+};
+
+const phaseColors: Record<string, string> = {
+  kennismaking: 'bg-[var(--color-surface-2)] text-[var(--color-ink-3)]',
+  'voorloop-vragenlijst': 'bg-[var(--color-info-soft)] text-[var(--color-info)]',
+  kickoff: 'bg-[var(--color-accent-soft)] text-[var(--color-ink)]',
+  'uitgebreide-vragenlijst': 'bg-[var(--color-info-soft)] text-[var(--color-info)]',
+  'workshop-1': 'bg-[var(--color-accent-soft)] text-[var(--color-ink)]',
+  verdieping: 'bg-purple-100 text-purple-700',
+  rapport: 'bg-[var(--color-surface-2)] text-[var(--color-ink-2)]',
+  terugkoppeling: 'bg-[var(--color-score-green-soft)] text-[var(--color-score-green)]',
+  opvolgmoment: 'bg-[var(--color-surface-2)] text-[var(--color-ink-2)]',
+};
+
+const entriesByPhase = new Map<string, typeof family.logfile>();
+for (const e of family.logfile) {
+  if (!entriesByPhase.has(e.phase)) entriesByPhase.set(e.phase, []);
+  entriesByPhase.get(e.phase)!.push(e);
+}
+
+const memberById = new Map(family.members.map((m) => [m.id, m]));
+const categoryById = new Map(CATEGORY_DEFINITIONS.map((c) => [c.id, c]));
+---
+
+<AppLayout
+  title={`Logfile — ${family.name}`}
+  topbarTitle={family.name}
+  topbarSubtitle="Logfile, alle teambevindingen tijdens het traject"
+>
+  <FamilyTabs family={family} active="logfile" />
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="grid gap-6 lg:grid-cols-3">
+      <div class="lg:col-span-2 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-[16px] font-semibold tracking-tight">Tijdlijn bevindingen</h2>
+          <button class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Nieuwe notitie
+          </button>
+        </div>
+
+        {Array.from(entriesByPhase.entries()).map(([phase, entries]) => (
+          <div>
+            <div class="mb-2 flex items-center gap-2">
+              <span class={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${phaseColors[phase] ?? 'bg-[var(--color-surface-2)] text-[var(--color-ink-2)]'}`}>
+                {phaseLabels[phase] ?? phase}
+              </span>
+              <span class="text-[11px] text-[var(--color-muted)]">{entries.length} notitie{entries.length === 1 ? '' : 's'}</span>
+            </div>
+            <div class="space-y-3">
+              {entries.map((e) => (
+                <Card padding="md">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="flex items-center gap-2 text-[11.5px] text-[var(--color-ink-3)]">
+                      <span class="font-medium text-[var(--color-ink-2)]">{e.author}</span>
+                      <span class="text-[var(--color-muted)]">•</span>
+                      <span class="tabular-nums">{fmt(e.date)}</span>
+                      {e.familyMember && (
+                        <>
+                          <span class="text-[var(--color-muted)]">•</span>
+                          <span>over {memberById.get(e.familyMember)?.name ?? e.familyMember}</span>
+                        </>
+                      )}
+                      {e.isBeginNote && (
+                        <span class="ml-1 rounded-full border border-[var(--color-border)] px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-[var(--color-muted)]">begin</span>
+                      )}
+                    </div>
+                    {e.category && (
+                      <span class="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-ink-2)]">
+                        <span class="text-[var(--color-ink-3)]">#{e.category}</span>
+                        {categoryById.get(e.category)?.shortTitle}
+                      </span>
+                    )}
+                  </div>
+                  <p class="mt-2 text-[13px] leading-relaxed text-[var(--color-ink)]">{e.body}</p>
+                  {e.attachments && e.attachments.length > 0 && (
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      {e.attachments.map((a) => (
+                        <span class="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-1 text-[11.5px] text-[var(--color-ink-2)]">
+                          <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 2v4h4"/></svg>
+                          {a.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div class="space-y-4">
+        <Card padding="md">
+          <h3 class="text-[14px] font-semibold tracking-tight">Snelle notitie</h3>
+          <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Voeg een bevinding toe vanuit elke processtap. Tag een categorie en optioneel een familielid.</p>
+          <textarea rows="4" placeholder="Wat is er opgevallen?" class="mt-3 w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-[12.5px] outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface)]"></textarea>
+          <div class="mt-2 grid grid-cols-2 gap-2">
+            <select class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px]">
+              <option>Categorie...</option>
+              {CATEGORY_DEFINITIONS.map((c) => <option>{c.id}. {c.shortTitle}</option>)}
+            </select>
+            <select class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px]">
+              <option>Familielid...</option>
+              {family.members.map((m) => <option>{m.name}</option>)}
+            </select>
+          </div>
+          <button class="mt-3 w-full rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">Opslaan in logfile</button>
+        </Card>
+
+        <Card padding="md">
+          <h3 class="text-[14px] font-semibold tracking-tight">Begin-aantekeningen</h3>
+          <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Notities gemarkeerd als &quot;begin&quot; worden uitgesloten van de AI team-beoordeling. Dit voorkomt dat vroege observaties het eindoordeel kleuren.</p>
+          <p class="mt-3 text-[12.5px] font-medium">{family.logfile.filter((e) => e.isBeginNote).length} begin-notitie&apos;s</p>
+        </Card>
+
+        <Card padding="md">
+          <h3 class="text-[14px] font-semibold tracking-tight">Per categorie</h3>
+          <ul class="mt-3 space-y-1.5">
+            {CATEGORY_DEFINITIONS.map((c) => {
+              const n = family.logfile.filter((e) => e.category === c.id).length;
+              return (
+                <li class="flex items-center justify-between text-[12px]">
+                  <span class="text-[var(--color-ink-2)]"><span class="text-[var(--color-ink-3)]">{c.id}.</span> {c.shortTitle}</span>
+                  <span class="text-[var(--color-ink-3)] tabular-nums">{n}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      </div>
+    </div>
+  </div>
+</AppLayout>

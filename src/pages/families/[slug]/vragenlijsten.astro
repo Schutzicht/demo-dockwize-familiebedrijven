@@ -1,0 +1,181 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Card from '../../../components/Card.astro';
+import ScoreBadge from '../../../components/ScoreBadge.astro';
+import ScoreWheel from '../../../components/ScoreWheel.astro';
+import FamilyTabs from '../../../components/FamilyTabs.astro';
+import { allFamilies } from '../../../data/wattel';
+import { CATEGORY_DEFINITIONS, categoryScoreFromAnswers, type Moment } from '../../../data/types';
+
+export function getStaticPaths() {
+  return allFamilies.map((f) => ({ params: { slug: f.slug } }));
+}
+
+const family = allFamilies.find((f) => f.slug === Astro.params.slug);
+if (!family) return Astro.redirect('/families');
+
+const activeMoment = (Astro.url.searchParams.get('m') ?? 'KO') as Moment;
+const run = family.questionnaires.find((q) => q.moment === activeMoment) ?? family.questionnaires[0];
+
+const segments = CATEGORY_DEFINITIONS.map((c) => ({
+  categoryId: c.id,
+  score: categoryScoreFromAnswers(run.answers, run.questions, c.id).score,
+}));
+
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+
+const completedPct = Math.round((run.completedBy.length / family.members.length) * 100);
+
+function valueColor(v: number) {
+  if (v >= 4) return 'bg-[var(--color-score-green-soft)] text-[var(--color-score-green)]';
+  if (v >= 3) return 'bg-[var(--color-score-yellow-soft)] text-[var(--color-score-yellow)]';
+  return 'bg-[var(--color-score-red-soft)] text-[var(--color-score-red)]';
+}
+
+const momentMeta: Record<Moment, { label: string; subtitle: string }> = {
+  KO: { label: 'KO — voorloop-vragenlijst', subtitle: 'Input voor kick-off op locatie' },
+  WS1: { label: 'WS1 — uitgebreide vragenlijst', subtitle: 'Voorbereiding workshop 1' },
+  TK: { label: 'TK — evaluatie-vragenlijst', subtitle: 'Voorbereiding terugkoppelsessie' },
+};
+
+const memberById = new Map(family.members.map((m) => [m.id, m]));
+---
+
+<AppLayout
+  title={`Vragenlijsten — ${family.name}`}
+  topbarTitle={family.name}
+  topbarSubtitle="Vragenlijsten en automatische scoring"
+>
+  <FamilyTabs family={family} active="vragenlijsten" />
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="flex flex-wrap items-center gap-2">
+      {family.questionnaires.map((q) => {
+        const active = q.moment === activeMoment;
+        return (
+          <a
+            href={`/families/${family.slug}/vragenlijsten?m=${q.moment}`}
+            class={`flex items-center gap-2 rounded-[10px] border px-3 py-2 text-[12.5px] font-medium transition-colors ${
+              active
+                ? 'border-[var(--color-ink)] bg-[var(--color-ink)] text-white'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)]'
+            }`}
+          >
+            <span class="text-[10px] uppercase tracking-widest opacity-70">{q.moment}</span>
+            {momentMeta[q.moment].label}
+            <span class={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${active ? 'bg-white/20 text-white' : 'bg-[var(--color-surface-2)] text-[var(--color-ink-3)]'}`}>
+              {q.questions.length} vragen
+            </span>
+          </a>
+        );
+      })}
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      <Card class="lg:col-span-2" padding="lg">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">{momentMeta[run.moment].label}</p>
+            <h3 class="mt-1 text-[18px] font-semibold tracking-tight">{run.title}</h3>
+            <p class="mt-1 text-[13px] text-[var(--color-ink-2)]">{run.description}</p>
+          </div>
+          <button class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-accent)] px-3 py-2 text-[12.5px] font-semibold text-[var(--color-ink)] hover:brightness-95">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM12 18v-6M9 15h6"/></svg>
+            Herbereken kleurplaat
+          </button>
+        </div>
+        <div class="mt-5 grid gap-4 sm:grid-cols-3">
+          <div class="rounded-[10px] bg-[var(--color-surface-2)] p-4">
+            <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Verstuurd</p>
+            <p class="mt-1 text-[14px] font-medium">{fmt(run.sentAt)}</p>
+          </div>
+          <div class="rounded-[10px] bg-[var(--color-surface-2)] p-4">
+            <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Deadline</p>
+            <p class="mt-1 text-[14px] font-medium">{fmt(run.dueAt)}</p>
+          </div>
+          <div class="rounded-[10px] bg-[var(--color-surface-2)] p-4">
+            <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Voltooid</p>
+            <p class="mt-1 text-[14px] font-medium">{run.completedBy.length}/{family.members.length} <span class="text-[var(--color-ink-3)]">({completedPct}%)</span></p>
+          </div>
+        </div>
+      </Card>
+
+      <Card padding="lg">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Auto-scoring</p>
+        <h3 class="mt-1 text-[14px] font-semibold tracking-tight">Resultaat als kleurplaat</h3>
+        <p class="mt-1 text-[12px] text-[var(--color-ink-3)]">Gemiddelde antwoordwaarde per categorie, automatisch omgezet naar de 9-segmenten kleurplaat.</p>
+        <div class="mt-3 flex justify-center">
+          <ScoreWheel segments={segments} centerTitle={run.moment} centerSubtitle={momentMeta[run.moment].label.split(' — ')[1]} variant="dark" size={260} />
+        </div>
+      </Card>
+    </div>
+
+    <Card padding="none" class="overflow-hidden">
+      <div class="border-b border-[var(--color-border)] px-5 py-4">
+        <h3 class="text-[14px] font-semibold tracking-tight">Antwoorden per familielid</h3>
+        <p class="text-[12px] text-[var(--color-ink-3)]">Antwoord-schaal 1 (laag) tot 5 (hoog). Gemiddelde per categorie bepaalt automatisch de kleur.</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[760px] border-collapse text-[12.5px]">
+          <thead class="bg-[var(--color-surface-2)]/60">
+            <tr>
+              <th class="sticky left-0 bg-[var(--color-surface-2)]/80 px-5 py-3 text-left text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Vraag</th>
+              <th class="px-3 py-3 text-left text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Cat.</th>
+              {family.members.map((m) => (
+                <th class="px-3 py-3 text-center text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">{m.name}</th>
+              ))}
+              <th class="px-3 py-3 text-center text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">⌀</th>
+            </tr>
+          </thead>
+          <tbody>
+            {run.questions.map((q) => {
+              const answers = run.answers.filter((a) => a.questionId === q.id);
+              const byMember = new Map(answers.map((a) => [a.memberId, a]));
+              const avg = answers.length ? answers.reduce((s, a) => s + a.value, 0) / answers.length : 0;
+              return (
+                <tr class="border-t border-[var(--color-border)]/60">
+                  <td class="sticky left-0 bg-[var(--color-surface)] px-5 py-2.5 align-top text-[var(--color-ink)]">{q.text}</td>
+                  <td class="px-3 py-2.5 align-top"><span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-[10.5px] font-semibold">{q.category}</span></td>
+                  {family.members.map((m) => {
+                    const a = byMember.get(m.id);
+                    return (
+                      <td class="px-3 py-2.5 text-center">
+                        {a ? (
+                          <span class={`inline-flex h-7 w-7 items-center justify-center rounded-[8px] text-[12px] font-semibold tabular-nums ${valueColor(a.value)}`}>{a.value}</span>
+                        ) : (
+                          <span class="text-[var(--color-muted)]">—</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td class="px-3 py-2.5 text-center text-[12px] font-semibold tabular-nums text-[var(--color-ink)]">{avg.toFixed(1)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+
+    <Card padding="none" class="overflow-hidden">
+      <div class="border-b border-[var(--color-border)] px-5 py-4">
+        <h3 class="text-[14px] font-semibold tracking-tight">Score per categorie</h3>
+        <p class="text-[12px] text-[var(--color-ink-3)]">Gegenereerd uit de antwoorden van alle deelnemers.</p>
+      </div>
+      <div class="divide-y divide-[var(--color-border)]/60">
+        {CATEGORY_DEFINITIONS.map((c) => {
+          const { score, avg, n } = categoryScoreFromAnswers(run.answers, run.questions, c.id);
+          return (
+            <div class="grid grid-cols-12 items-center gap-4 px-5 py-3">
+              <div class="col-span-1 text-[12px] font-semibold text-[var(--color-ink-3)]">{c.id}</div>
+              <div class="col-span-4"><p class="text-[13px] font-medium">{c.title}</p></div>
+              <div class="col-span-3 text-[12px] text-[var(--color-ink-2)]">{c.checkQuestion}</div>
+              <div class="col-span-2 text-[12px] text-[var(--color-ink-3)]">⌀ {avg.toFixed(1)} <span class="text-[var(--color-muted)]">· {n} antw.</span></div>
+              <div class="col-span-2 text-right"><ScoreBadge score={score} size="sm" /></div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  </div>
+</AppLayout>

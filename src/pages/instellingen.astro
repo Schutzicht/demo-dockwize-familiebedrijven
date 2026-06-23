@@ -1,0 +1,83 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/Card.astro';
+
+const sections = [
+  {
+    title: 'Account',
+    items: [
+      { label: 'Naam', value: 'Imro Wong', editable: true },
+      { label: 'E-mail', value: 'imro@dockwize.nl', editable: true },
+      { label: 'Rol', value: 'APK Projectleider', editable: false },
+    ],
+  },
+  {
+    title: 'Tool-configuratie',
+    items: [
+      { label: 'Standaard PPT-template', value: 'Dockwize Familiebedrijven v3.1', editable: true },
+      { label: 'AI-model', value: 'Claude Opus 4.7 (1M context)', editable: true },
+      { label: 'Scoring-drempels', value: '≥ 4.0 groen · ≥ 3.0 geel · < 3.0 rood', editable: true },
+    ],
+  },
+  {
+    title: 'Notificaties',
+    items: [
+      { label: 'E-mail bij voltooide vragenlijst', value: 'Aan', editable: true, toggle: true },
+      { label: 'E-mail bij AI-rapport gegenereerd', value: 'Aan', editable: true, toggle: true },
+      { label: 'Wekelijkse digest', value: 'Uit', editable: true, toggle: true },
+    ],
+  },
+  {
+    title: 'Integraties',
+    items: [
+      { label: 'Microsoft Teams (logfile)', value: 'Verbonden', editable: false },
+      { label: 'HubSpot (CRM)', value: 'Niet verbonden', editable: true },
+      { label: 'Schipper Accountants (financiële data)', value: 'Niet verbonden', editable: true },
+    ],
+  },
+];
+---
+
+<AppLayout
+  title="Instellingen — Dockwize Familiebedrijven"
+  topbarTitle="Instellingen"
+  topbarSubtitle="Account, tool-configuratie en integraties"
+>
+  <div class="mx-auto max-w-4xl space-y-6 px-6 py-8">
+    {sections.map((section) => (
+      <Card padding="none">
+        <div class="border-b border-[var(--color-border)] px-5 py-4">
+          <h3 class="text-[14px] font-semibold tracking-tight">{section.title}</h3>
+        </div>
+        <div class="divide-y divide-[var(--color-border)]/60">
+          {section.items.map((item) => (
+            <div class="flex items-center justify-between px-5 py-3.5">
+              <div>
+                <p class="text-[12.5px] font-medium">{item.label}</p>
+                <p class="text-[11.5px] text-[var(--color-ink-3)]">{item.value}</p>
+              </div>
+              {item.editable && (
+                item.toggle ? (
+                  <button class={`relative h-5 w-9 rounded-full transition ${item.value === 'Aan' ? 'bg-[var(--color-ink)]' : 'bg-[var(--color-border-strong)]'}`}>
+                    <span class={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${item.value === 'Aan' ? 'left-4' : 'left-0.5'}`}></span>
+                  </button>
+                ) : (
+                  <button class="text-[12px] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Bewerken</button>
+                )
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+    ))}
+
+    <Card padding="lg">
+      <h3 class="text-[14px] font-semibold tracking-tight text-[var(--color-danger)]">Gevarenzone</h3>
+      <p class="mt-1 text-[12px] text-[var(--color-ink-3)]">Acties hieronder zijn niet ongedaan te maken.</p>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button class="rounded-[10px] border border-[var(--color-danger)]/30 bg-white px-3 py-2 text-[12.5px] font-medium text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)]">Account verwijderen</button>
+        <button class="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12.5px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)]">Sessies afmelden</button>
+      </div>
+    </Card>
+  </div>
+</AppLayout>

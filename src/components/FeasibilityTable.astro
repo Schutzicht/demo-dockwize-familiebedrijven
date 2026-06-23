@@ -1,0 +1,46 @@
+---
+import type { FeasibilityTable } from '../data/types';
+
+interface Props {
+  table: FeasibilityTable;
+}
+const { table } = Astro.props;
+---
+
+<div class="rounded-2xl border border-dock-border bg-dock-card p-6 sm:p-8 shadow-sm">
+  <p class="text-xs uppercase tracking-widest text-dock-muted">Haalbaarheidstoets</p>
+  <h3 class="mt-1 text-xl sm:text-2xl">{table.title}</h3>
+  <p class="text-sm text-dock-muted">{table.subject}</p>
+
+  <div class="mt-5 overflow-x-auto">
+    <table class="w-full min-w-[520px] border-collapse text-sm">
+      <thead>
+        <tr class="border-b border-dock-border">
+          <th class="py-2 pr-3 text-left font-medium text-dock-muted">Post</th>
+          {table.years.map((y) => (
+            <th class="py-2 px-3 text-right font-medium text-dock-muted">{y}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {table.rows.map((row, i) => (
+          <tr class={`${i === table.rows.length - 1 ? 'border-t border-dock-border font-semibold' : 'border-b border-dock-border/40'}`}>
+            <td class="py-2 pr-3">{row.label}</td>
+            {row.values.map((v) => (
+              <td class="py-2 px-3 text-right tabular-nums">{v}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <ul class="mt-5 space-y-2 text-sm">
+    {table.notes.map((n) => (
+      <li class="flex gap-2">
+        <span class="mt-2 h-1 w-1 shrink-0 rounded-full bg-dock-muted"></span>
+        <span class="text-dock-ink/80">{n}</span>
+      </li>
+    ))}
+  </ul>
+</div>

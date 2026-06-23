@@ -1,0 +1,46 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/Card.astro';
+import { allFamilies } from '../data/wattel';
+
+const allTeam = new Map<string, { name: string; role: string; organisation: string; specialism: string; families: string[] }>();
+for (const f of allFamilies) {
+  for (const t of f.team) {
+    const existing = allTeam.get(t.name);
+    if (existing) existing.families.push(f.name);
+    else allTeam.set(t.name, { ...t, families: [f.name] });
+  }
+}
+const team = Array.from(allTeam.values());
+---
+
+<AppLayout
+  title="Team — Dockwize Familiebedrijven"
+  topbarTitle="Team"
+  topbarSubtitle="APK-projectleiders, adviseurs en specialisten"
+>
+  <Fragment slot="topbar-action">
+    <button class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Teamlid uitnodigen
+    </button>
+  </Fragment>
+
+  <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {team.map((t) => (
+        <Card padding="lg">
+          <span class="flex h-12 w-12 items-center justify-center rounded-[12px] bg-[var(--color-ink)] text-[14px] font-semibold text-white">{t.name.split(' ').map((n) => n[0]).slice(0, 2).join('')}</span>
+          <p class="mt-4 text-[14px] font-semibold">{t.name}</p>
+          <p class="text-[11.5px] uppercase tracking-widest text-[var(--color-ink-3)]">{t.role}</p>
+          <p class="mt-3 text-[12.5px] text-[var(--color-ink-2)]">{t.organisation}</p>
+          <p class="mt-0.5 text-[11.5px] text-[var(--color-ink-3)]">{t.specialism}</p>
+          <div class="mt-4 border-t border-[var(--color-border)] pt-3">
+            <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Trajecten ({t.families.length})</p>
+            <p class="mt-1 text-[12px] text-[var(--color-ink-2)]">{t.families.join(', ')}</p>
+          </div>
+        </Card>
+      ))}
+    </div>
+  </div>
+</AppLayout>

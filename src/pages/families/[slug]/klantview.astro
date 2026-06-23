@@ -1,0 +1,219 @@
+---
+import '../../../styles/global.css';
+import ScoreWheel from '../../../components/ScoreWheel.astro';
+import ScoreBadge from '../../../components/ScoreBadge.astro';
+import DockwizeLogo from '../../../components/DockwizeLogo.astro';
+import { allFamilies } from '../../../data/wattel';
+import { CATEGORY_DEFINITIONS, categoryScoreFromAnswers } from '../../../data/types';
+
+export function getStaticPaths() {
+  return allFamilies.map((f) => ({ params: { slug: f.slug } }));
+}
+
+const family = allFamilies.find((f) => f.slug === Astro.params.slug);
+if (!family) return Astro.redirect('/families');
+
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+
+const koRun = family.questionnaires.find((q) => q.moment === 'KO');
+const koSegments = CATEGORY_DEFINITIONS.map((c) => ({
+  categoryId: c.id,
+  score: koRun ? categoryScoreFromAnswers(koRun.answers, koRun.questions, c.id).score : 'grey',
+}));
+const teamSegments = CATEGORY_DEFINITIONS.map((c) => {
+  const a = family.assessments.find((x) => x.categoryId === c.id);
+  return { categoryId: c.id, score: a?.teamScore ?? 'grey' };
+});
+
+const overdragers = family.members.filter((m) => m.role === 'overdrager');
+const opvolgers = family.members.filter((m) => m.role === 'opvolger');
+const overigen = family.members.filter((m) => m.role === 'overig');
+---
+
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <title>APK Familiebedrijven — {family.name}</title>
+  </head>
+  <body class="bg-[var(--color-bg)] antialiased">
+    <header class="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <DockwizeLogo size={24} suffix="Familiebedrijven" />
+        <span class="text-[11.5px] text-[var(--color-ink-3)]">Vertrouwelijk rapport, {family.name}</span>
+      </div>
+    </header>
+
+    <section class="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div class="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Terugkoppeling {fmt(family.terugkoppelingDate)}</p>
+        <h1 class="mt-3 text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
+          APK Bedrijfsoverdracht<br />
+          <span class="text-[var(--color-ink-2)]">{family.name}</span>
+        </h1>
+        <p class="mt-6 max-w-2xl text-[15px] text-[var(--color-ink-2)] leading-relaxed">
+          In dit eindrapport worden de risico&apos;s in kaart gebracht bij een bedrijfsopvolging binnen {family.name}.
+          De beoordeling kijkt naar negen categorieën, gescoord op groen (op koers), geel (aandacht) of rood (actie noodzakelijk) — gemeten bij de kick-off en opnieuw bij de terugkoppeling.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-2 text-[11.5px]">
+          <span class="rounded-full bg-[var(--color-surface-2)] px-3 py-1 text-[var(--color-ink-2)]">Bedrijf: {family.business}</span>
+          <span class="rounded-full bg-[var(--color-surface-2)] px-3 py-1 text-[var(--color-ink-2)]">Kick-off: {fmt(family.kickoffDate)}</span>
+          <span class="rounded-full bg-[var(--color-surface-2)] px-3 py-1 text-[var(--color-ink-2)]">Terugkoppeling: {fmt(family.terugkoppelingDate)}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+      <div class="mx-auto max-w-6xl px-6 py-16">
+        <div class="grid items-start gap-8 lg:grid-cols-2">
+          <div class="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8 shadow-[var(--shadow-sm)]">
+            <div class="mb-6 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Bij kick-off</p>
+                <h2 class="text-[20px] font-semibold tracking-tight">Zelfbeoordeling</h2>
+              </div>
+              <span class="text-[11px] text-[var(--color-ink-3)]">{fmt(family.kickoffDate)}</span>
+            </div>
+            <ScoreWheel segments={koSegments} centerTitle="KO" centerSubtitle="Kick-off" variant="dark" />
+          </div>
+          <div class="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8 shadow-[var(--shadow-sm)]">
+            <div class="mb-6 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Bij terugkoppeling</p>
+                <h2 class="text-[20px] font-semibold tracking-tight">Oordeel team</h2>
+              </div>
+              <span class="text-[11px] text-[var(--color-ink-3)]">{fmt(family.terugkoppelingDate)}</span>
+            </div>
+            <ScoreWheel segments={teamSegments} centerTitle="TK" centerSubtitle="Beoordeling" variant="dark" />
+          </div>
+        </div>
+        <p class="mx-auto mt-10 max-w-3xl text-center text-[14px] text-[var(--color-ink-2)] leading-relaxed">
+          Door de uitwerkingen en discussies tijdens het traject zijn vele risico&apos;s (rood) aandachtspunten (geel) geworden.
+        </p>
+      </div>
+    </section>
+
+    <section class="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div class="mx-auto max-w-6xl px-6 py-16">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Aangenomen scenario</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight">Hoe de overdracht eruitziet</h2>
+        <p class="mt-5 max-w-3xl text-[14px] text-[var(--color-ink-2)] leading-relaxed">{family.scenario}</p>
+
+        <div class="mt-10 grid gap-4 sm:grid-cols-3">
+          {[{ title: 'Overdragers', members: overdragers }, { title: 'Opvolgers', members: opvolgers }, { title: 'Overige familie', members: overigen }].map((group) => (
+            <div class="rounded-[12px] bg-[var(--color-surface-2)] p-5">
+              <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">{group.title}</p>
+              <ul class="mt-3 space-y-3">
+                {group.members.map((m) => (
+                  <li>
+                    <p class="text-[13.5px] font-medium">{m.name}</p>
+                    {m.description && <p class="text-[11.5px] text-[var(--color-ink-3)]">{m.description}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-[var(--color-bg)]">
+      <div class="mx-auto max-w-6xl px-6 py-16">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Negen categorieën</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight">Beoordeling per categorie</h2>
+
+        <div class="mt-10 space-y-4">
+          {CATEGORY_DEFINITIONS.map((cat) => {
+            const a = family.assessments.find((x) => x.categoryId === cat.id);
+            const koScore = koSegments[cat.id - 1].score;
+            return (
+              <article class="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-7 shadow-[var(--shadow-sm)]">
+                <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-ink-3)]">Categorie {cat.id}</p>
+                    <h3 class="mt-1 text-[20px] font-semibold tracking-tight">{cat.title}</h3>
+                    <p class="mt-1 max-w-2xl text-[12.5px] text-[var(--color-ink-3)]">{cat.checkQuestion}</p>
+                  </div>
+                  <div class="flex flex-col items-start gap-1.5 sm:items-end">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] w-7">KO</span>
+                      <ScoreBadge score={koScore} size="sm" />
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] w-7">TK</span>
+                      <ScoreBadge score={a?.teamScore ?? 'grey'} size="sm" />
+                    </div>
+                  </div>
+                </header>
+                <div class="mt-5 grid gap-5 md:grid-cols-3">
+                  <div>
+                    <h4 class="text-[10.5px] uppercase tracking-widest text-[var(--color-ink-3)]">Gewenst</h4>
+                    <p class="mt-1.5 text-[12.5px] leading-relaxed">{cat.gewenst}</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10.5px] uppercase tracking-widest text-[var(--color-ink-3)]">Risico&apos;s &amp; aandachtspunten</h4>
+                    <p class="mt-1.5 text-[12.5px] leading-relaxed">{a?.risicos ?? '—'}</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10.5px] uppercase tracking-widest text-[var(--color-ink-3)]">Advies</h4>
+                    <p class="mt-1.5 text-[12.5px] leading-relaxed">{a?.advies ?? '—'}</p>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-[var(--color-ink)] text-white">
+      <div class="mx-auto max-w-4xl px-6 py-20">
+        <p class="text-[11px] uppercase tracking-widest text-white/60">Totaaloordeel</p>
+        <h2 class="mt-3 text-3xl font-semibold tracking-tight">Samenvatting</h2>
+        <p class="mt-6 text-[14px] leading-relaxed text-white/85">{family.conclusion}</p>
+      </div>
+    </section>
+
+    <section class="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+      <div class="mx-auto max-w-5xl px-6 py-16">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Hoe ervaren jullie het traject</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight">Korte evaluatie</h2>
+        <div class="mt-8 grid gap-4 sm:grid-cols-2">
+          {family.evaluation.map((e) => (
+            <figure class="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+              <blockquote class="text-[13px] leading-relaxed text-[var(--color-ink-2)]">&ldquo;{e.quote}&rdquo;</blockquote>
+              <figcaption class="mt-3 text-[10.5px] uppercase tracking-widest text-[var(--color-ink-3)]">{e.member}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-[var(--color-surface)]">
+      <div class="mx-auto max-w-5xl px-6 py-16">
+        <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">APK Team</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight">Het team achter dit traject</h2>
+        <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {family.team.map((t) => (
+            <div class="rounded-[12px] bg-[var(--color-surface-2)] p-5">
+              <p class="text-[13px] font-semibold">{t.name}</p>
+              <p class="mt-1 text-[10.5px] uppercase tracking-widest text-[var(--color-ink-3)]">{t.role}</p>
+              {t.organisation && <p class="mt-3 text-[12px] text-[var(--color-ink-2)]">{t.organisation}</p>}
+              <p class="mt-1 text-[11px] text-[var(--color-ink-3)]">{t.specialism}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <footer class="bg-[var(--color-ink)] text-white/70">
+      <div class="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-8 text-[11.5px] sm:flex-row sm:items-center sm:justify-between">
+        <p>APK Bedrijfsoverdracht Familiebedrijven, Dockwize</p>
+        <p>Vertrouwelijk rapport voor {family.name}</p>
+      </div>
+    </footer>
+  </body>
+</html>
