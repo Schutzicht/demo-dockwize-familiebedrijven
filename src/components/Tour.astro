@@ -29,15 +29,17 @@
     </button>
 
     <div class="flex items-center gap-2">
-      <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-bold text-[var(--color-ink)]">
-        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      <span id="dw-tour-badge" class="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-ink)]">
+        <svg id="dw-tour-ico-info" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        <svg id="dw-tour-ico-open" class="hidden h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>
       </span>
-      <span class="text-[10px] font-medium uppercase tracking-widest text-[var(--color-ink-3)]">Rondleiding</span>
+      <span id="dw-tour-kind" class="text-[10px] font-medium uppercase tracking-widest text-[var(--color-ink-3)]">Rondleiding</span>
       <span id="dw-tour-count" class="ml-auto mr-7 text-[11px] font-medium text-[var(--color-muted)] tabular-nums"></span>
     </div>
 
     <h3 id="dw-tour-title" class="mt-3 text-[15px] font-semibold tracking-tight text-[var(--color-ink)]"></h3>
     <p id="dw-tour-body" class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--color-ink-2)]"></p>
+    <ul id="dw-tour-options" class="mt-3 hidden space-y-1.5"></ul>
 
     <div class="mt-5 flex items-center justify-between gap-2">
       <button id="dw-tour-skip" type="button" class="text-[11.5px] font-medium text-[var(--color-ink-3)] transition-colors hover:text-[var(--color-ink)]">Overslaan</button>
@@ -56,7 +58,14 @@
 </style>
 
 <script>
-  type Step = { path: string; sel: string | null; title: string; body: string };
+  type Step = {
+    path: string;
+    sel: string | null;
+    title: string;
+    body: string;
+    kind?: 'info' | 'open';
+    options?: string[];
+  };
 
   const STEPS: Step[] = [
     {
@@ -97,6 +106,18 @@
     },
     {
       path: '/families/wattel',
+      sel: '[data-tour="tabs"] a[href$="vragenlijsten"]',
+      kind: 'open',
+      title: 'Waar komen de antwoorden vandaan?',
+      body: 'Open punt om samen te beslissen. De kleurplaat wordt berekend uit de vragenlijst-antwoorden, maar hoe komen die binnen? Nu staat er nog een vast voorbeeld. Drie richtingen:',
+      options: [
+        'Ingebouwd formulier: gezinslid vult in via een eigen link, antwoorden landen direct in de tool',
+        'Excel-upload: Imro exporteert en uploadt, de tool leest in en scoort',
+        'HubSpot-formulier: antwoorden via HubSpot, met koppeling naar de tool',
+      ],
+    },
+    {
+      path: '/families/wattel',
       sel: 'aside a[href="/bibliotheek"]',
       title: 'Onderbouwen met codes',
       body: 'Je beoordeling onderbouw je met standaard knelpunten en verbeteracties uit de bibliotheek. Klik op Volgende, dan gaan we erheen.',
@@ -134,8 +155,13 @@
   const btnPrev = document.getElementById('dw-tour-prev');
   const btnSkip = document.getElementById('dw-tour-skip');
   const btnClose = document.getElementById('dw-tour-close');
+  const elKind = document.getElementById('dw-tour-kind');
+  const elOptions = document.getElementById('dw-tour-options');
+  const badge = document.getElementById('dw-tour-badge');
+  const icoInfo = document.getElementById('dw-tour-ico-info');
+  const icoOpen = document.getElementById('dw-tour-ico-open');
 
-  if (root && block && spot && card && elTitle && elBody && elCount && btnNext && btnPrev && btnSkip && btnClose) {
+  if (root && block && spot && card && elTitle && elBody && elCount && btnNext && btnPrev && btnSkip && btnClose && elKind && elOptions && badge && icoInfo && icoOpen) {
     const path = () => location.pathname.replace(/\/$/, '') || '/';
     let idx = parseInt(get(LS.idx) || '0', 10) || 0;
 
@@ -180,6 +206,27 @@
       elCount.textContent = `${i + 1} / ${STEPS.length}`;
       (btnPrev as HTMLButtonElement).style.visibility = i === 0 ? 'hidden' : 'visible';
       btnNext.textContent = i === STEPS.length - 1 ? 'Klaar' : 'Volgende';
+
+      const open = step.kind === 'open';
+      elKind.textContent = open ? 'Open vraag — met Imro bespreken' : 'Rondleiding';
+      badge.classList.toggle('bg-[var(--color-accent)]', !open);
+      badge.classList.toggle('text-[var(--color-ink)]', !open);
+      badge.classList.toggle('bg-[var(--color-info-soft)]', open);
+      badge.classList.toggle('text-[var(--color-info)]', open);
+      icoInfo.classList.toggle('hidden', open);
+      icoOpen.classList.toggle('hidden', !open);
+      if (open && step.options && step.options.length) {
+        elOptions.innerHTML = step.options
+          .map(
+            (o) =>
+              `<li class="flex gap-2 text-[12px] leading-snug text-[var(--color-ink-2)]"><span class="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-info)]"></span><span>${o}</span></li>`,
+          )
+          .join('');
+        elOptions.classList.remove('hidden');
+      } else {
+        elOptions.innerHTML = '';
+        elOptions.classList.add('hidden');
+      }
 
       if (onReflow) {
         window.removeEventListener('resize', onReflow);
