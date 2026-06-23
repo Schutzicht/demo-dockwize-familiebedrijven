@@ -1,0 +1,190 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/Card.astro';
+import { CATEGORY_DEFINITIONS } from '../data/types';
+
+const templateQuestions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, q: c.checkQuestion }));
+---
+
+<AppLayout
+  title="Kleurplaat genereren — Dockwize Familiebedrijven"
+  topbarTitle="Kleurplaat genereren"
+  topbarSubtitle="Importeer de vragenlijst-Excel en krijg direct de kleurplaat"
+>
+  <div class="mx-auto max-w-5xl space-y-6 px-6 py-8">
+    <Card padding="lg">
+      <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Kernfunctie 1</p>
+      <h2 class="mt-1 text-[20px] font-semibold tracking-tight">Van vragenlijst naar kleurplaat</h2>
+      <p class="mt-2 max-w-2xl text-[13px] leading-relaxed text-[var(--color-ink-2)]">
+        Upload de Excel met de antwoorden (ja, nee of weet niet per persoon). De tool berekent direct de kleurplaat.
+        De regel: per categorie telt het strengste antwoord. Eén nee maakt de categorie rood, één weet niet maakt 'm geel.
+      </p>
+
+      <div class="mt-5 flex flex-wrap items-center gap-3">
+        <label class="text-[11px] uppercase tracking-widest text-[var(--color-muted)]">Moment</label>
+        <select id="moment" class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12.5px]">
+          <option value="Voorloop-vragenlijst">Voorloop-vragenlijst</option>
+          <option value="Uitgebreide vragenlijst">Uitgebreide vragenlijst</option>
+          <option value="Evaluatie / terugkoppeling">Evaluatie / terugkoppeling</option>
+        </select>
+      </div>
+
+      <div class="mt-5 grid gap-4 sm:grid-cols-2">
+        <div class="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4">
+          <p class="text-[12.5px] font-semibold">Stap 1 — Format</p>
+          <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Download de voorbeeld-template zodat de kolommen kloppen.</p>
+          <button id="dl-template" type="button" class="mt-3 inline-flex items-center gap-1.5 rounded-[9px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-border-strong)]">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Download template (.xlsx)
+          </button>
+        </div>
+        <div class="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4">
+          <p class="text-[12.5px] font-semibold">Stap 2 — Upload</p>
+          <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Kies de ingevulde Excel (.xlsx of .csv).</p>
+          <label id="drop" class="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-[9px] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] font-medium text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-ink-3)]">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            <span id="drop-label">Sleep hierheen of klik om te kiezen</span>
+            <input id="file" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
+          </label>
+        </div>
+      </div>
+    </Card>
+
+    <div id="empty" class="rounded-[14px] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-12 text-center text-[13px] text-[var(--color-ink-3)]">
+      Nog geen bestand geïmporteerd. Download eerst de template, vul 'm in en upload 'm hierboven.
+    </div>
+
+    <div id="result" class="hidden space-y-6">
+      <Card padding="lg">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]"><span id="r-moment">Voorloop-vragenlijst</span></p>
+            <h3 class="mt-1 text-[16px] font-semibold tracking-tight">Kleurplaat</h3>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11.5px] text-[var(--color-ink-3)] tabular-nums">
+            <span class="rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 font-medium"><span id="r-people">0</span> personen</span>
+            <span class="rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 font-medium"><span id="r-questions">0</span> vragen</span>
+          </div>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {CATEGORY_DEFINITIONS.map((c) => (
+            <div data-cat={c.id} class="kp-tile rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+              <div class="flex items-center justify-between">
+                <span data-num class="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-[11px] font-semibold text-[var(--color-ink-2)]">{c.id}</span>
+                <span data-badge class="rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-ink-3)]">—</span>
+              </div>
+              <p class="mt-2 text-[13px] font-semibold leading-snug">{c.shortTitle}</p>
+              <p data-reason class="mt-1 text-[11px] text-[var(--color-ink-3)]">Nog niet beoordeeld</p>
+            </div>
+          ))}
+        </div>
+
+        <div id="warnings" class="mt-4 hidden rounded-[10px] border border-[var(--color-warning-soft)] bg-[var(--color-warning-soft)] px-4 py-3 text-[12px] text-[var(--color-warning)]"></div>
+      </Card>
+    </div>
+  </div>
+
+  <script>
+    import * as XLSX from 'xlsx';
+    import { parseRows, buildKleurplaat } from '../lib/kleurplaat';
+
+    const tplEl = document.getElementById('tpl-data');
+    const templateQuestions: { id: number; q: string }[] = tplEl ? JSON.parse(tplEl.textContent || '[]') : [];
+
+    const toast = (window as unknown as { dwToast?: (m: string) => void }).dwToast;
+
+    const SCORE: Record<string, { badge: string; num: string; label: string }> = {
+      green: { badge: 'bg-[var(--color-score-green-soft)] text-[var(--color-score-green)]', num: 'bg-[var(--color-score-green)] text-white', label: 'Op koers' },
+      yellow: { badge: 'bg-[var(--color-score-yellow-soft)] text-[var(--color-score-yellow)]', num: 'bg-[var(--color-score-yellow)] text-white', label: 'Aandacht' },
+      red: { badge: 'bg-[var(--color-score-red-soft)] text-[var(--color-score-red)]', num: 'bg-[var(--color-score-red)] text-white', label: 'Actie nodig' },
+      grey: { badge: 'bg-[var(--color-surface-2)] text-[var(--color-ink-3)]', num: 'bg-[var(--color-surface-2)] text-[var(--color-ink-2)]', label: 'Geen data' },
+    };
+    const ALL_BADGE = 'bg-[var(--color-surface-2)] bg-[var(--color-score-green-soft)] text-[var(--color-score-green)] bg-[var(--color-score-yellow-soft)] text-[var(--color-score-yellow)] bg-[var(--color-score-red-soft)] text-[var(--color-score-red)] text-[var(--color-ink-3)]'.split(' ');
+    const ALL_NUM = 'bg-[var(--color-surface-2)] bg-[var(--color-score-green)] bg-[var(--color-score-yellow)] bg-[var(--color-score-red)] text-white text-[var(--color-ink-2)]'.split(' ');
+
+    // Template downloaden
+    document.getElementById('dl-template')?.addEventListener('click', () => {
+      const headers = ['Naam', 'Rol', ...templateQuestions.map((t) => `${t.id}. ${t.q}`)];
+      const example = [
+        ['Erik', 'Overdrager', 'ja', 'ja', 'nee', 'ja', 'ja', 'weet niet', 'ja', 'ja', 'ja'],
+        ['Mariska', 'Overdrager', 'ja', 'ja', 'nee', 'weet niet', 'ja', 'ja', 'ja', 'nee', 'ja'],
+        ['Sanne', 'Opvolger', 'ja', 'weet niet', 'ja', 'ja', 'ja', 'ja', 'weet niet', 'ja', 'ja'],
+        ['Joost', 'Opvolger', 'ja', 'ja', 'ja', 'ja', 'nee', 'ja', 'ja', 'ja', 'weet niet'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...example]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Vragenlijst');
+      XLSX.writeFile(wb, 'voorloop-vragenlijst-template.xlsx');
+      toast?.('Template gedownload');
+    });
+
+    // Bestand verwerken
+    const fileInput = document.getElementById('file') as HTMLInputElement | null;
+    const drop = document.getElementById('drop');
+    const dropLabel = document.getElementById('drop-label');
+
+    const setCell = (id: string, val: string | number) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(val);
+    };
+
+    const render = (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = new Uint8Array(ev.target?.result as ArrayBuffer);
+          const wb = XLSX.read(data, { type: 'array' });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
+          const parsed = parseRows(rows);
+          const results = buildKleurplaat(parsed.answers);
+
+          setCell('r-people', parsed.people.length);
+          setCell('r-questions', parsed.questions.length);
+          setCell('r-moment', (document.getElementById('moment') as HTMLSelectElement | null)?.value || 'Vragenlijst');
+
+          results.forEach((res) => {
+            const tile = document.querySelector(`[data-cat="${res.categoryId}"]`);
+            if (!tile) return;
+            const sc = SCORE[res.score];
+            const badge = tile.querySelector('[data-badge]') as HTMLElement | null;
+            const num = tile.querySelector('[data-num]') as HTMLElement | null;
+            const reason = tile.querySelector('[data-reason]') as HTMLElement | null;
+            if (badge) { badge.classList.remove(...ALL_BADGE); badge.classList.add(...sc.badge.split(' ')); badge.textContent = sc.label; }
+            if (num) { num.classList.remove(...ALL_NUM); num.classList.add(...sc.num.split(' ')); }
+            if (reason) reason.textContent = res.reason;
+          });
+
+          const warn = document.getElementById('warnings');
+          const msgs = [...parsed.warnings];
+          if (parsed.unrecognized > 0) msgs.push(`${parsed.unrecognized} cel(len) met een onbekend antwoord overgeslagen (gebruik ja, nee of weet niet).`);
+          if (warn) {
+            if (msgs.length) { warn.classList.remove('hidden'); warn.textContent = msgs.join(' '); }
+            else warn.classList.add('hidden');
+          }
+
+          document.getElementById('empty')?.classList.add('hidden');
+          document.getElementById('result')?.classList.remove('hidden');
+          if (dropLabel) dropLabel.textContent = file.name;
+          toast?.('Kleurplaat gegenereerd');
+        } catch (err) {
+          toast?.('Kon het bestand niet lezen, controleer het format');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    };
+
+    fileInput?.addEventListener('change', () => { if (fileInput.files?.[0]) render(fileInput.files[0]); });
+    drop?.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('border-[var(--color-ink-3)]'); });
+    drop?.addEventListener('dragleave', () => drop.classList.remove('border-[var(--color-ink-3)]'));
+    drop?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      drop.classList.remove('border-[var(--color-ink-3)]');
+      const f = (e as DragEvent).dataTransfer?.files?.[0];
+      if (f) render(f);
+    });
+  </script>
+
+  <script type="application/json" id="tpl-data" set:html={JSON.stringify(templateQuestions)} is:inline></script>
+</AppLayout>

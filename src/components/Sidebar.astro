@@ -23,6 +23,7 @@ const icons = {
   sparkles:
     '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>',
   library: '<path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
   users:
     '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   settings:
@@ -37,6 +38,7 @@ const groups: NavGroup[] = [
       { label: 'Overzicht', href: '/', iconPath: icons.dashboard },
       { label: 'Families', href: '/families', iconPath: icons.building, badge: 3 },
       { label: 'Vragenlijsten', href: '/vragenlijsten', iconPath: icons.list },
+      { label: 'Kleurplaat', href: '/import', iconPath: icons.upload, badge: 'MVP' },
       { label: 'AI-analyses', href: '/ai', iconPath: icons.sparkles, badge: 'AI' },
       { label: 'Bibliotheek', href: '/bibliotheek', iconPath: icons.library },
     ],
