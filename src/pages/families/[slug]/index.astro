@@ -57,14 +57,27 @@ const overigen = family.members.filter((m) => m.role === 'overig');
     <div class="grid gap-6 lg:grid-cols-3">
       <Card class="lg:col-span-3" padding="lg" data-tour="wheels">
         <div class="grid items-start gap-8 lg:grid-cols-3">
-          <ScoreWheel segments={koSegments} centerTitle="KO" centerSubtitle="Kick-off" variant="dark" size={320} />
-          <ScoreWheel segments={ws1Segments} centerTitle="WS1" centerSubtitle="Workshop 1" variant="dark" size={320} />
-          <ScoreWheel segments={teamSegments} centerTitle="TK" centerSubtitle="Team beoordeling" variant="dark" size={320} />
-        </div>
-        <div class="mt-6 grid grid-cols-3 gap-4 text-center text-[12px]">
-          <div><span class="text-[var(--color-ink-3)]">Voorloop-vragenlijst</span><br/><span class="font-medium">{fmt(koRun?.sentAt ?? family.kickoffDate)}</span></div>
-          <div><span class="text-[var(--color-ink-3)]">Uitgebreide vragenlijst</span><br/><span class="font-medium">{fmt(ws1Run?.sentAt ?? family.workshopDate)}</span></div>
-          <div><span class="text-[var(--color-ink-3)]">Team-beoordeling (laatste AI)</span><br/><span class="font-medium">{family.aiReports[family.aiReports.length - 1]?.generatedAt ?? '—'}</span></div>
+          <div class="flex flex-col items-center gap-4">
+            <ScoreWheel segments={koSegments} centerTitle="KO" centerSubtitle="Kick-off" variant="dark" size={320} />
+            <div class="text-center text-[12px] leading-snug">
+              <span class="text-[var(--color-ink-3)]">Voorloop-vragenlijst</span><br/>
+              <span class="font-medium">{fmt(koRun?.sentAt ?? family.kickoffDate)}</span>
+            </div>
+          </div>
+          <div class="flex flex-col items-center gap-4">
+            <ScoreWheel segments={ws1Segments} centerTitle="WS1" centerSubtitle="Workshop 1" variant="dark" size={320} />
+            <div class="text-center text-[12px] leading-snug">
+              <span class="text-[var(--color-ink-3)]">Uitgebreide vragenlijst</span><br/>
+              <span class="font-medium">{fmt(ws1Run?.sentAt ?? family.workshopDate)}</span>
+            </div>
+          </div>
+          <div class="flex flex-col items-center gap-4">
+            <ScoreWheel segments={teamSegments} centerTitle="TK" centerSubtitle="Team beoordeling" variant="dark" size={320} />
+            <div class="text-center text-[12px] leading-snug">
+              <span class="text-[var(--color-ink-3)]">Team-beoordeling (laatste AI)</span><br/>
+              <span class="font-medium">{family.aiReports[family.aiReports.length - 1]?.generatedAt ?? '—'}</span>
+            </div>
+          </div>
         </div>
       </Card>
     </div>
