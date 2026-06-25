@@ -1,0 +1,276 @@
+---
+import DockwizeMark from '../../../../components/DockwizeMark.astro';
+import { allFamilies } from '../../../../data/wattel';
+import { SESSIONS, buildRapport, sessionIndex } from '../../../../lib/rapport';
+
+export function getStaticPaths() {
+  return allFamilies.flatMap((f) => SESSIONS.map((s) => ({ params: { slug: f.slug, sessie: s.key } })));
+}
+
+const family = allFamilies.find((f) => f.slug === Astro.params.slug);
+if (!family) return Astro.redirect('/families');
+
+const ci = sessionIndex(String(Astro.params.sessie));
+const cutoffIndex = ci < 0 ? SESSIONS.length - 1 : ci;
+const rap = buildRapport(family, cutoffIndex);
+
+const today = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+const scoreClass: Record<string, string> = { red: 's-red', yellow: 's-yellow', green: 's-green' };
+const scoreLabel: Record<string, string> = { red: 'Actie nodig', yellow: 'Aandacht', green: 'Op koers' };
+---
+
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{rap.type} — {family.name} — Dockwize Familiebedrijven</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <style is:inline>
+      @page { size: A4 landscape; margin: 0; }
+      :root {
+        --yellow:#ffda00; --yellow-soft:#fff4b8;
+        --ink:#1d1d1b; --ink-2:#4a4a48; --ink-3:#757572; --muted:#9b9b98;
+        --bg:#fafaf9; --surface:#ffffff; --border:#e7e7e5; --border-strong:#d4d4d2;
+        --slate:#3f6896; --slate-soft:#e6edf6;
+        --green:#2f9e6b; --green-soft:#e2f2ea;
+        --amber:#d98a16; --amber-soft:#fbeccf;
+        --alert:#c0492f; --alert-soft:#f7e3dd;
+      }
+      * { box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      html, body { margin:0; padding:0; }
+      body { font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:#33343a; -webkit-font-smoothing:antialiased; }
+
+      .toolbar { position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 20px; background:rgba(20,20,18,0.86); backdrop-filter:saturate(160%) blur(10px); color:#fff; }
+      .toolbar .brand { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; }
+      .toolbar .actions { display:flex; align-items:center; gap:8px; }
+      .btn { display:inline-flex; align-items:center; gap:7px; border-radius:10px; padding:8px 13px; font-size:12.5px; font-weight:600; cursor:pointer; border:1px solid transparent; text-decoration:none; }
+      .btn-primary { background:var(--yellow); color:var(--ink); }
+      .btn-ghost { background:rgba(255,255,255,0.08); color:#fff; border-color:rgba(255,255,255,0.18); }
+      .btn svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+      .deck { display:flex; flex-direction:column; align-items:center; gap:26px; padding:28px 16px 60px; transform-origin:top center; }
+      .slide { position:relative; width:1123px; height:794px; flex:0 0 auto; background:var(--bg); border-radius:10px; overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,0.32); padding:64px 72px; display:flex; flex-direction:column; }
+
+      .eyebrow { margin:0; font-size:13px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:var(--ink-3); display:flex; align-items:center; gap:9px; }
+      .eyebrow .dot { width:8px; height:8px; border-radius:50%; background:var(--yellow); }
+      h1, h2 { margin:0; font-weight:800; letter-spacing:-0.02em; line-height:1.04; }
+      .deco { position:absolute; right:-220px; top:-220px; width:560px; height:560px; border-radius:50%; background:var(--yellow); opacity:0.10; }
+      .foot { margin-top:auto; padding-top:18px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+      .sig { display:flex; align-items:center; gap:9px; font-size:13px; font-weight:800; }
+      .sig .d { width:8px; height:8px; border-radius:50%; background:var(--yellow); }
+      .foot .meta { font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-3); }
+
+      /* cover */
+      .cover-h { font-size:74px; line-height:0.98; letter-spacing:-0.03em; margin-top:26px; }
+      .cover-sub { margin-top:22px; font-size:21px; font-weight:500; color:var(--ink-2); line-height:1.4; max-width:760px; }
+      .cover-chips { margin-top:34px; display:flex; gap:10px; flex-wrap:wrap; }
+      .chip { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700; background:var(--surface); border:1px solid var(--border-strong); border-radius:999px; padding:9px 16px; }
+      .chip .d { width:9px; height:9px; border-radius:50%; }
+
+      /* kleurplaat board */
+      .board { margin-top:24px; flex:1; display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:1fr; gap:16px; }
+      .cell { border-radius:12px; border:1px solid var(--border); background:var(--surface); padding:20px 22px; display:flex; flex-direction:column; position:relative; }
+      .cell .num { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; }
+      .cell .ct { margin-top:14px; font-size:19px; font-weight:800; letter-spacing:-0.01em; }
+      .cell .st { margin-top:auto; font-size:13px; font-weight:700; }
+      .s-red { --c:var(--alert); --cs:var(--alert-soft); }
+      .s-yellow { --c:var(--amber); --cs:var(--amber-soft); }
+      .s-green { --c:var(--green); --cs:var(--green-soft); }
+      .cell.s-red, .cell.s-yellow, .cell.s-green { border-color:var(--c); }
+      .cell .num { background:var(--cs); color:var(--c); }
+      .cell .st { color:var(--c); }
+      .cell.s-green .st { color:var(--ink-3); }
+
+      .legend { margin-top:18px; display:flex; gap:22px; font-size:13px; font-weight:600; color:var(--ink-3); }
+      .legend span { display:inline-flex; align-items:center; gap:8px; }
+      .legend i { width:11px; height:11px; border-radius:3px; display:inline-block; }
+
+      /* aandachtspunten */
+      .points { margin-top:24px; flex:1; display:flex; flex-direction:column; gap:12px; }
+      .pt { display:grid; grid-template-columns:46px 1fr 1fr; gap:18px; align-items:center; border:1px solid var(--border); border-left-width:5px; border-radius:10px; background:var(--surface); padding:16px 20px; }
+      .pt .cat { display:flex; align-items:center; gap:10px; }
+      .pt .cat .n { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; }
+      .pt .lab { font-size:10.5px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); }
+      .pt .v { font-size:15px; font-weight:700; margin-top:2px; line-height:1.25; }
+      .pt .vsub { font-size:12.5px; color:var(--ink-3); margin-top:3px; }
+      .pt .code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; color:var(--ink-3); }
+      .pt.s-red { border-left-color:var(--alert); }
+      .pt.s-yellow { border-left-color:var(--amber); }
+      .pt .cat .n.s-red { background:var(--alert-soft); color:var(--alert); }
+      .pt .cat .n.s-yellow { background:var(--amber-soft); color:var(--amber); }
+
+      /* verantwoording */
+      .vr { margin-top:24px; flex:1; display:flex; flex-direction:column; gap:18px; }
+      .vr p { margin:0; font-size:15px; line-height:1.5; color:var(--ink-2); max-width:880px; }
+      .vr .members { display:flex; flex-wrap:wrap; gap:9px; }
+      .vr .mem { display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:7px 13px; font-size:13px; font-weight:600; }
+      .vr .mem.ok { background:var(--green-soft); color:var(--green); }
+      .vr .mem.no { background:var(--surface); border:1px solid var(--border); color:var(--ink-3); }
+      .takeaway { margin-top:auto; background:var(--ink); color:#fff; border-radius:14px; padding:26px 32px; display:flex; align-items:center; gap:24px; }
+      .takeaway .big { font-size:23px; font-weight:800; line-height:1.18; }
+      .takeaway .big b { color:var(--yellow); }
+      .takeaway .ic { flex:0 0 auto; width:54px; height:54px; border-radius:50%; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; }
+      .takeaway .ic svg { width:28px; height:28px; fill:none; stroke:var(--yellow); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+      @media print {
+        body { background:#fff; }
+        .toolbar { display:none !important; }
+        .deck { transform:none !important; gap:0; padding:0; }
+        .slide { box-shadow:none; border-radius:0; page-break-after:always; break-after:page; }
+        .slide:last-child { page-break-after:auto; break-after:auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div class="brand"><DockwizeMark size={22} /> {rap.type} · {family.name}</div>
+      <div class="actions">
+        <a class="btn btn-ghost" href={`/families/${family.slug}/ai-rapport`}>
+          <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Terug naar de tool
+        </a>
+        <button class="btn btn-ghost" id="copy-link">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Kopieer link
+        </button>
+        <button class="btn btn-primary" id="dl-pdf">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Download als PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="deck">
+      <!-- Slide 1: cover -->
+      <section class="slide">
+        <span class="deco"></span>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <DockwizeMark size={34} />
+          <div style="line-height:1;">
+            <div style="font-size:20px; font-weight:800; letter-spacing:-0.01em;">Dockwize</div>
+            <div style="font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-3); margin-top:3px;">Familiebedrijven</div>
+          </div>
+        </div>
+        <p class="eyebrow" style="margin-top:40px;"><span class="dot"></span>{rap.type}</p>
+        <h1 class="cover-h">{family.name}</h1>
+        <p class="cover-sub">{family.business}. Een momentopname van de bedrijfsopvolging over negen categorieën, opgebouwd uit de aantekeningen van het APK-team.</p>
+        <div class="cover-chips">
+          <span class="chip"><span class="d" style="background:var(--yellow)"></span>Beoordeling tot en met {rap.cutoffLabel}</span>
+          <span class="chip"><span class="d" style="background:var(--slate)"></span>{rap.notesUsed} notities · {rap.authors.length} adviseurs</span>
+          <span class="chip"><span class="d" style="background:var(--ink-3)"></span>{today}</span>
+        </div>
+        <div class="foot">
+          <span class="sig"><span class="d"></span>Dockwize Familiebedrijven</span>
+          <span class="meta">Vertrouwelijk · APK-traject</span>
+        </div>
+      </section>
+
+      <!-- Slide 2: kleurplaat -->
+      <section class="slide">
+        <p class="eyebrow"><span class="dot"></span>De kleurplaat</p>
+        <h2 style="font-size:40px; margin-top:14px;">Stand per categorie</h2>
+        <div class="board">
+          {rap.findings.map((f) => (
+            <div class={`cell ${scoreClass[f.score]}`}>
+              <span class="num">{f.categoryId}</span>
+              <span class="ct">{f.shortTitle}</span>
+              <span class="st">{scoreLabel[f.score]}</span>
+            </div>
+          ))}
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--green)"></i>Op koers ({rap.counts.green})</span>
+          <span><i style="background:var(--amber)"></i>Aandacht ({rap.counts.yellow})</span>
+          <span><i style="background:var(--alert)"></i>Actie nodig ({rap.counts.red})</span>
+        </div>
+        <div class="foot">
+          <span class="sig"><span class="d"></span>{family.name}</span>
+          <span class="meta">{rap.type} · tot en met {rap.cutoffLabel}</span>
+        </div>
+      </section>
+
+      <!-- Slide 3: aandachtspunten -->
+      <section class="slide">
+        <p class="eyebrow"><span class="dot"></span>Aandachtspunten</p>
+        <h2 style="font-size:40px; margin-top:14px;">Wat vraagt aandacht, en het advies</h2>
+        <div class="points">
+          {rap.aandachtspunten.length === 0 && (
+            <p style="font-size:17px; color:var(--ink-3); margin-top:8px;">Op dit moment zijn er geen gele of rode categorieën. Alles staat op koers.</p>
+          )}
+          {rap.aandachtspunten.map((f) => (
+            <div class={`pt ${scoreClass[f.score]}`}>
+              <div class="cat"><span class={`n ${scoreClass[f.score]}`}>{f.categoryId}</span></div>
+              <div>
+                <p class="lab">Knelpunt <span class="code">{f.knelpuntCode}</span></p>
+                <p class="v">{f.knelpuntKort}</p>
+                <p class="vsub">{f.title} · bron: {f.bron}</p>
+              </div>
+              <div>
+                <p class="lab">Advies <span class="code">{f.adviesCode}</span></p>
+                <p class="v">{f.adviesKort}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div class="foot">
+          <span class="sig"><span class="d"></span>{family.name}</span>
+          <span class="meta">{rap.aandachtspunten.length} aandachtspunten</span>
+        </div>
+      </section>
+
+      <!-- Slide 4: verantwoording -->
+      <section class="slide">
+        <span class="deco"></span>
+        <p class="eyebrow"><span class="dot"></span>Verantwoording</p>
+        <h2 style="font-size:40px; margin-top:14px;">Waarop is dit gebaseerd</h2>
+        <div class="vr">
+          <p>Dit rapport is opgebouwd uit {rap.notesUsed} aantekeningen tot en met de sessie <b>{rap.cutoffLabel}</b>. Per categorie is alleen de meest recente aantekening meegenomen, zodat een eerder beeld het huidige niet vertroebelt. Begin-aantekeningen blijven buiten beschouwing.</p>
+          <div>
+            <p class="lab" style="font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:10px;">Aangeleverd door het team</p>
+            <div class="members">
+              {rap.deelnemers.map((m) => (
+                <span class={`mem ${m.ok ? 'ok' : 'no'}`}>{m.ok ? '✓' : '–'} {m.name}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div class="takeaway">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+          <div class="big">{rap.counts.red} categorie(ën) vragen <b>actie</b>, {rap.counts.yellow} vragen <b>aandacht</b>. De rest staat op koers.</div>
+        </div>
+        <div class="foot">
+          <span class="sig"><span class="d"></span>Dockwize Familiebedrijven</span>
+          <span class="meta">{today}</span>
+        </div>
+      </section>
+    </div>
+
+    <script is:inline>
+      // Schaal de slides naar de schermbreedte (zoom houdt de layouthoogte correct).
+      const deck = document.querySelector('.deck');
+      function fit() {
+        if (!deck) return;
+        const scale = Math.min(1, (window.innerWidth - 32) / 1123);
+        deck.style.zoom = String(scale);
+      }
+      window.addEventListener('resize', fit);
+      fit();
+
+      document.getElementById('dl-pdf')?.addEventListener('click', () => window.print());
+      document.getElementById('copy-link')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          const span = btn.lastChild;
+          if (span) btn.childNodes[btn.childNodes.length - 1].textContent = ' Gekopieerd';
+          setTimeout(() => { btn.childNodes[btn.childNodes.length - 1].textContent = ' Kopieer link'; }, 1600);
+        } catch (err) {
+          window.prompt('Kopieer de link:', window.location.href);
+        }
+      });
+    </script>
+  </body>
+</html>
