@@ -44,13 +44,6 @@ const overigen = family.members.filter((m) => m.role === 'overig');
   topbarTitle={family.name}
   topbarSubtitle={`${family.business}, ${family.status}`}
 >
-  <Fragment slot="topbar-action">
-    <a href={`/families/${family.slug}/klantview`} target="_blank" class="inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12.5px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">
-      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M14 10l7-7M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
-      Klant-view openen
-    </a>
-  </Fragment>
-
   <FamilyTabs family={family} active="overzicht" />
 
   <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">

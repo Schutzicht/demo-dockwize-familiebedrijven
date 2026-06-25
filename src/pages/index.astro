@@ -118,26 +118,18 @@ function getMomentScores(family: typeof allFamilies[number], moment: 'KO' | 'WS1
 
     <div class="grid gap-6 lg:grid-cols-2">
       <Card data-tour="how">
-        <h3 class="text-[14px] font-semibold tracking-tight">Hoe werkt de tool</h3>
-        <p class="mt-1 text-[12.5px] text-[var(--color-ink-3)]">Vier stappen die we voor jullie automatiseren.</p>
-        <ol class="mt-5 space-y-3 text-[13px]">
-          <li class="flex gap-3">
+        <h3 class="text-[14px] font-semibold tracking-tight">Twee kernfuncties</h3>
+        <p class="mt-1 text-[12.5px] text-[var(--color-ink-3)]">Waar deze MVP om draait, allebei tijdsbesparend.</p>
+        <div class="mt-5 space-y-3">
+          <a href="/import" class="flex items-start gap-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 transition-colors hover:border-[var(--color-border-strong)]">
             <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-[var(--color-ink)]">1</span>
-            <span><strong>Voorloop-vragenlijst &raquo; KO-kleurplaat:</strong> automatisch gescoord op 9 categorieën, klaar voor de kick-off.</span>
-          </li>
-          <li class="flex gap-3">
+            <span class="text-[13px]"><strong>Vragenlijst naar kleurplaat:</strong> upload de Excel met ja, nee of weet niet en krijg direct de kleurplaat op 9 categorieën.</span>
+          </a>
+          <a href="/families/wattel/ai-rapport" class="flex items-start gap-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 transition-colors hover:border-[var(--color-border-strong)]">
             <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-[var(--color-ink)]">2</span>
-            <span><strong>Uitgebreide vragenlijst &raquo; WS1-kleurplaat:</strong> dieper inzicht, voorbereiding workshop 1.</span>
-          </li>
-          <li class="flex gap-3">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-[var(--color-ink)]">3</span>
-            <span><strong>Logfile &raquo; AI-rapport:</strong> teambevindingen verzamelen, AI maakt conceptrapport.</span>
-          </li>
-          <li class="flex gap-3">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-[var(--color-ink)]">4</span>
-            <span><strong>Team-beoordeling &raquo; eindrapport:</strong> AI stelt team-beoordeling voor, exporteer naar PowerPoint.</span>
-          </li>
-        </ol>
+            <span class="text-[13px]"><strong>Aantekeningen naar rapport:</strong> genereer op elk moment een tussentijds- of eindrapport uit de logfile, versie-bewust.</span>
+          </a>
+        </div>
       </Card>
       <Card>
         <h3 class="text-[14px] font-semibold tracking-tight">Komende sessies</h3>
