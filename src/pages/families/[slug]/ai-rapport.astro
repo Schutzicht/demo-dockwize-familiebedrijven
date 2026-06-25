@@ -1,7 +1,6 @@
 ---
 import AppLayout from '../../../layouts/AppLayout.astro';
 import Card from '../../../components/Card.astro';
-import ScoreBadge from '../../../components/ScoreBadge.astro';
 import FamilyTabs from '../../../components/FamilyTabs.astro';
 import { allFamilies } from '../../../data/wattel';
 import { CATEGORY_DEFINITIONS } from '../../../data/types';
@@ -14,14 +13,40 @@ export function getStaticPaths() {
 const family = allFamilies.find((f) => f.slug === Astro.params.slug);
 if (!family) return Astro.redirect('/families');
 
-const latest = family.aiReports[family.aiReports.length - 1];
 const categoryById = new Map(CATEGORY_DEFINITIONS.map((c) => [c.id, c]));
 const codering = aiCoderingVoorFamilie(family);
-
-const sourceEntries = latest
-  ? family.logfile.filter((e) => latest.logEntryIds.includes(e.id) && !e.isBeginNote)
-  : [];
 const excludedBegin = family.logfile.filter((e) => e.isBeginNote).length;
+
+// Sessies (fasen met echte notities) voor de versie-bewuste rapportgeneratie.
+const SESSIONS = [
+  { key: 'kickoff', label: 'Kick-off' },
+  { key: 'workshop-1', label: 'Workshop 1' },
+  { key: 'verdieping', label: 'Verdieping' },
+  { key: 'rapport', label: 'Rapport' },
+];
+const sessionIdx = (phase: string) => SESSIONS.findIndex((s) => s.key === phase);
+const coderingByNote = new Map(codering.map((c) => [c.entry.id, c]));
+const rapPayload = {
+  sessions: SESSIONS,
+  team: family.team.map((t) => t.name),
+  categories: CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, title: c.title, shortTitle: c.shortTitle })),
+  notes: family.logfile
+    .filter((e) => !e.isBeginNote && sessionIdx(e.phase) >= 0)
+    .map((e) => {
+      const c = coderingByNote.get(e.id);
+      return {
+        id: e.id,
+        session: sessionIdx(e.phase),
+        author: e.author,
+        categoryId: e.category,
+        code: c ? c.knelpunt.code : null,
+        knelpuntKort: c ? c.knelpunt.kort : null,
+        adviesCode: c ? c.advies.code : null,
+        adviesKort: c ? c.advies.kort : null,
+        severity: c ? c.severity : null,
+      };
+    }),
+};
 ---
 
 <AppLayout
@@ -35,24 +60,32 @@ const excludedBegin = family.logfile.filter((e) => e.isBeginNote).length;
     <Card padding="lg" class="overflow-hidden">
       <div class="grid items-start gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2">
-          <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Automatisering #3</p>
-          <h2 class="mt-1 text-[22px] font-semibold tracking-tight">AI-rapport genereren</h2>
+          <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Kernfunctie 2</p>
+          <h2 class="mt-1 text-[22px] font-semibold tracking-tight">Rapport genereren uit de aantekeningen</h2>
           <p class="mt-2 text-[13px] text-[var(--color-ink-2)] leading-relaxed">
-            Bundelt alle <strong>logfile-bevindingen</strong> die niet als begin-aantekening zijn gemarkeerd, samen met de antwoorden uit KO en WS1, en maakt per categorie een concept van <strong>Risico&apos;s &amp; aandachtspunten</strong> en <strong>Advies</strong>. Adviseurs kunnen dit aanscherpen en gebruiken ter voorbereiding van de volgende sessie.
+            De AI leest de logfile-notities en maakt op elk moment een tussentijds- of eindrapport. Alleen notities tot en met de gekozen sessie tellen mee, en per categorie wordt de meest recente meegenomen, zodat oude observaties een nieuwer beeld niet vertroebelen.
           </p>
-          <div class="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              id="generate-btn"
-              class="inline-flex items-center gap-2 rounded-[10px] bg-[var(--color-accent)] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-ink)] transition hover:brightness-95"
-            >
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6l-5 3.6 1.9-5.8L4 8.8h6.1z"/>
-              </svg>
-              Genereer AI-rapport
-            </button>
-            <button type="button" data-toast="PDF wordt gegenereerd en gedownload" class="inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12.5px] font-medium text-[var(--color-ink-2)] hover:border-[var(--color-border-strong)]">
-              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              Download als PDF
+
+          <div class="mt-5 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Type rapport</label>
+              <select id="rap-type" class="mt-1 w-full rounded-[9px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12.5px]">
+                <option value="Tussentijds rapport">Tussentijds rapport</option>
+                <option value="Eindrapport">Eindrapport</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Tot en met sessie</label>
+              <select id="rap-session" class="mt-1 w-full rounded-[9px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12.5px]"></select>
+            </div>
+          </div>
+
+          <div id="rap-deelnemers" class="mt-4 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5"></div>
+
+          <div class="mt-4">
+            <button id="rap-generate" type="button" class="inline-flex items-center gap-2 rounded-[10px] bg-[var(--color-accent)] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-ink)] transition hover:brightness-95">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6l-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg>
+              Genereer rapport
             </button>
           </div>
         </div>
@@ -142,13 +175,13 @@ const excludedBegin = family.logfile.filter((e) => e.isBeginNote).length;
       </Card>
     </div>
 
-    {latest && (
+    <div id="gen-report" class="hidden">
       <Card padding="none">
         <div class="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
           <div>
-            <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Laatste rapport</p>
-            <h3 class="text-[15px] font-semibold tracking-tight">Gegenereerd op {latest.generatedAt}</h3>
-            <p class="text-[12px] text-[var(--color-ink-3)]">door {latest.generatedBy} · bronnen: {latest.sourceMomentsConsidered.join(', ')} + {sourceEntries.length} logfile-notities (excl. begin)</p>
+            <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]"><span id="gr-type">Tussentijds rapport</span></p>
+            <h3 class="text-[15px] font-semibold tracking-tight">Gegenereerd rapport</h3>
+            <p id="gr-sub" class="text-[12px] text-[var(--color-ink-3)]"></p>
           </div>
           <span class="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-[11px] font-medium text-[var(--color-ink)]">
             <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
@@ -158,45 +191,26 @@ const excludedBegin = family.logfile.filter((e) => e.isBeginNote).length;
 
         <div class="border-b border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-5 py-4">
           <p class="text-[11px] uppercase tracking-widest text-[var(--color-muted)]">Samenvatting</p>
-          <p class="mt-2 text-[13px] leading-relaxed text-[var(--color-ink)]">{latest.summary}</p>
+          <p id="gr-summary" class="mt-2 text-[13px] leading-relaxed text-[var(--color-ink)]"></p>
         </div>
 
-        <div class="divide-y divide-[var(--color-border)]/60">
-          {latest.perCategory.map((p) => {
-            const cat = categoryById.get(p.categoryId)!;
-            return (
-              <div class="grid gap-4 px-5 py-5 lg:grid-cols-12">
-                <div class="lg:col-span-3">
-                  <div class="flex items-center gap-2">
-                    <span class="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ink)] text-[11px] font-semibold text-white">{p.categoryId}</span>
-                    <h4 class="text-[13.5px] font-semibold">{cat.title}</h4>
-                  </div>
-                  <div class="mt-2">
-                    <ScoreBadge score={p.proposedScore} size="sm" label={`AI voorstel: ${p.proposedScore}`} />
-                  </div>
-                </div>
-                <div class="lg:col-span-5">
-                  <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Risico&apos;s &amp; aandachtspunten</p>
-                  <p class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--color-ink)]">{p.risicos}</p>
-                </div>
-                <div class="lg:col-span-4">
-                  <p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Advies</p>
-                  <p class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--color-ink)]">{p.advies}</p>
-                </div>
-              </div>
-            );
-          })}
+        <div id="gr-grid" class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+
+        <div class="border-t border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-5 py-3">
+          <p id="gr-bronnen" class="text-[11.5px] leading-relaxed text-[var(--color-ink-3)]"></p>
         </div>
 
-        <div class="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-5 py-4">
-          <p class="text-[12px] text-[var(--color-ink-3)]">Tevreden met de concept-tekst? Verwerk in de team-beoordeling.</p>
+        <div class="flex items-center justify-between border-t border-[var(--color-border)] px-5 py-4">
+          <p class="text-[12px] text-[var(--color-ink-3)]">Tevreden? Verwerk in de team-beoordeling.</p>
           <a href={`/families/${family.slug}/team-beoordeling`} class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">
             Naar team-beoordeling
             <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </a>
         </div>
       </Card>
-    )}
+    </div>
+
+    <script type="application/json" id="rap-data" set:html={JSON.stringify(rapPayload)} is:inline></script>
 
     {family.aiReports.length > 1 && (
       <Card padding="md">
@@ -214,41 +228,124 @@ const excludedBegin = family.logfile.filter((e) => e.isBeginNote).length;
   </div>
 
   <script>
-    const btn = document.getElementById('generate-btn');
+    type RapNote = { id: string; session: number; author: string; categoryId: number | null; code: string | null; knelpuntKort: string | null; adviesCode: string | null; adviesKort: string | null; severity: 'red' | 'yellow' | null };
+    type RapPayload = { sessions: { key: string; label: string }[]; team: string[]; categories: { id: number; title: string; shortTitle: string }[]; notes: RapNote[] };
+
+    const dataEl = document.getElementById('rap-data');
+    const P = (dataEl ? JSON.parse(dataEl.textContent || '{}') : { sessions: [], team: [], categories: [], notes: [] }) as RapPayload;
+    const toast = (window as unknown as { dwToast?: (m: string) => void }).dwToast;
+
+    const sessionSel = document.getElementById('rap-session') as HTMLSelectElement | null;
+    const typeSel = document.getElementById('rap-type') as HTMLSelectElement | null;
+    const genBtn = document.getElementById('rap-generate');
     const wrap = document.getElementById('generating');
     const bar = document.getElementById('generating-bar');
-    const step = document.getElementById('generating-step');
-    const steps = [
-      'Logfile-notities laden',
-      'KO en WS1 antwoorden inlezen',
-      'Begin-aantekeningen uitsluiten',
-      'Per categorie redeneren',
-      'Conceptadvies formuleren',
-      'Rapport opmaken',
-    ];
-    btn?.addEventListener('click', () => {
-      if (!wrap || !bar || !step) return;
-      wrap.classList.remove('hidden');
-      btn.setAttribute('disabled', 'true');
-      btn.classList.add('opacity-60', 'cursor-not-allowed');
-      let i = 0;
-      const tick = () => {
-        if (i >= steps.length) {
-          if (bar) bar.style.width = '100%';
-          setTimeout(() => {
-            wrap.classList.add('hidden');
-            btn.removeAttribute('disabled');
-            btn.classList.remove('opacity-60', 'cursor-not-allowed');
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-          }, 500);
-          return;
-        }
-        step.textContent = steps[i];
-        bar.style.width = `${((i + 1) / steps.length) * 100}%`;
-        i++;
-        setTimeout(tick, 650);
-      };
-      tick();
-    });
+    const stepEl = document.getElementById('generating-step');
+    const deelWrap = document.getElementById('rap-deelnemers');
+
+    if (sessionSel) {
+      P.sessions.forEach((s, i) => {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = `tot en met ${s.label}`;
+        sessionSel.appendChild(o);
+      });
+      sessionSel.value = String(Math.max(0, P.sessions.length - 1));
+    }
+
+    const CHECK = '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    const CROSS = '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    const cutoff = () => (sessionSel ? Number(sessionSel.value) : P.sessions.length - 1);
+
+    function renderDeelnemers() {
+      if (!deelWrap) return;
+      const c = cutoff();
+      const submitted = new Set(P.notes.filter((n) => n.session <= c).map((n) => n.author));
+      const rows = P.team.map((name) => ({ name, ok: submitted.has(name) }));
+      const n = rows.filter((r) => r.ok).length;
+      const warn = n < 3;
+      deelWrap.innerHTML =
+        `<div class="flex items-center justify-between"><span class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Aangeleverd voor de beoordeling</span>` +
+        `<span class="text-[11.5px] font-semibold ${warn ? 'text-[var(--color-warning)]' : 'text-[var(--color-score-green)]'}">${n} van ${P.team.length}</span></div>` +
+        `<div class="mt-2 flex flex-wrap gap-1.5">` +
+        rows.map((r) => `<span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ${r.ok ? 'bg-[var(--color-score-green-soft)] text-[var(--color-score-green)]' : 'border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink-3)]'}">${r.ok ? CHECK : CROSS}${r.name}</span>`).join('') +
+        `</div>` +
+        (warn ? `<p class="mt-2 text-[11px] text-[var(--color-warning)]">Nog niet iedereen heeft aangeleverd. Je kunt al genereren met wat er is (2 à 3 van de ${P.team.length} is genoeg).</p>` : '');
+    }
+    sessionSel?.addEventListener('change', renderDeelnemers);
+    renderDeelnemers();
+
+    const SCORE: Record<string, { tile: string; badge: string; num: string; label: string }> = {
+      red: { tile: 'border-[var(--color-score-red-soft)]', badge: 'bg-[var(--color-score-red-soft)] text-[var(--color-score-red)]', num: 'bg-[var(--color-score-red)] text-white', label: 'Actie nodig' },
+      yellow: { tile: 'border-[var(--color-score-yellow-soft)]', badge: 'bg-[var(--color-score-yellow-soft)] text-[var(--color-score-yellow)]', num: 'bg-[var(--color-score-yellow)] text-white', label: 'Aandacht' },
+      green: { tile: 'border-[var(--color-border)]', badge: 'bg-[var(--color-score-green-soft)] text-[var(--color-score-green)]', num: 'bg-[var(--color-score-green)] text-white', label: 'Op koers' },
+    };
+    const setText = (id: string, t: string) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+
+    function build() {
+      const c = cutoff();
+      const used = P.notes.filter((n) => n.session <= c);
+      const perCat: Record<number, RapNote> = {};
+      for (const n of used) {
+        if (n.code == null || n.categoryId == null) continue;
+        const cur = perCat[n.categoryId];
+        if (!cur || n.session >= cur.session) perCat[n.categoryId] = n;
+      }
+      let red = 0, yellow = 0;
+      const grid = document.getElementById('gr-grid');
+      if (grid) {
+        grid.innerHTML = P.categories.map((cat) => {
+          const f = perCat[cat.id];
+          const score = f && f.severity ? f.severity : 'green';
+          if (score === 'red') red++; else if (score === 'yellow') yellow++;
+          const sc = SCORE[score];
+          const body = f
+            ? `<div class="mt-2 space-y-1"><p class="text-[11.5px] font-medium text-[var(--color-ink)]"><span class="font-mono text-[10.5px] text-[var(--color-ink-3)]">${f.code}</span> ${f.knelpuntKort ?? ''}</p><p class="text-[11px] text-[var(--color-ink-3)]">Advies ${f.adviesCode}: ${f.adviesKort ?? ''}</p><p class="mt-1 text-[10.5px] text-[var(--color-muted)]">bron: ${f.author}, ${P.sessions[f.session]?.label ?? ''}</p></div>`
+            : `<p class="mt-2 text-[11px] text-[var(--color-ink-3)]">Geen bijzonderheden in de aantekeningen</p>`;
+          return `<div class="rounded-[12px] border ${sc.tile} bg-[var(--color-surface)] p-4"><div class="flex items-center justify-between"><span class="flex h-7 w-7 items-center justify-center rounded-full ${sc.num} text-[11px] font-semibold">${cat.id}</span><span class="rounded-full px-2 py-0.5 text-[10px] font-medium ${sc.badge}">${sc.label}</span></div><p class="mt-2 text-[13px] font-semibold leading-snug">${cat.shortTitle}</p>${body}</div>`;
+        }).join('');
+      }
+      const lbl = P.sessions[c]?.label ?? '';
+      const green = P.categories.length - red - yellow;
+      setText('gr-summary', `Op basis van ${used.length} notitie(s) tot en met ${lbl}. ${red} categorie(ën) actie nodig, ${yellow} aandacht, ${green} op koers of zonder bijzonderheden.`);
+      const authors = Array.from(new Set(used.map((n) => n.author)));
+      setText('gr-bronnen', `Bronnen: notities tot en met ${lbl} van ${authors.join(', ') || 'niemand'}. Per categorie telt alleen de meest recente notitie; begin-aantekeningen zijn uitgesloten.`);
+      setText('gr-type', typeSel?.value || 'Rapport');
+      const today = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+      setText('gr-sub', `Gegenereerd ${today} · door Imro Wong`);
+      document.getElementById('gen-report')?.classList.remove('hidden');
+    }
+
+    if (genBtn) {
+      const steps = ['Logfile-notities laden', 'Begin-aantekeningen uitsluiten', 'Notities tot en met de sessie selecteren', 'Per categorie de meest recente nemen', 'Knelpunt-codes en advies koppelen', 'Rapport opmaken'];
+      genBtn.addEventListener('click', () => {
+        if (!wrap || !bar || !stepEl) { build(); return; }
+        wrap.classList.remove('hidden');
+        document.getElementById('gen-report')?.classList.add('hidden');
+        genBtn.setAttribute('disabled', 'true');
+        genBtn.classList.add('opacity-60', 'cursor-not-allowed');
+        bar.style.width = '0%';
+        let i = 0;
+        const tick = () => {
+          if (i >= steps.length) {
+            bar.style.width = '100%';
+            setTimeout(() => {
+              wrap.classList.add('hidden');
+              genBtn.removeAttribute('disabled');
+              genBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+              build();
+              document.getElementById('gen-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              toast?.('Rapport gegenereerd');
+            }, 450);
+            return;
+          }
+          stepEl.textContent = steps[i];
+          bar.style.width = `${((i + 1) / steps.length) * 100}%`;
+          i++;
+          setTimeout(tick, 600);
+        };
+        tick();
+      });
+    }
   </script>
 </AppLayout>
