@@ -16,8 +16,10 @@ const templateQuestions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, q: c.chec
       <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Kernfunctie 1</p>
       <h2 class="mt-1 text-[20px] font-semibold tracking-tight">Van vragenlijst naar kleurplaat</h2>
       <p class="mt-2 max-w-2xl text-[13px] leading-relaxed text-[var(--color-ink-2)]">
-        Upload de Excel met de antwoorden (ja, nee of weet niet per persoon). De tool berekent direct de kleurplaat.
-        De regel: per categorie telt het strengste antwoord. Eén nee maakt de categorie rood, één weet niet maakt 'm geel.
+        Upload de antwoorden-Excel en de tool berekent direct de kleurplaat. De <strong>HubSpot-export</strong> van de
+        voorloop-vragenlijst werkt rechtstreeks: Voornaam/Achternaam, de volzin-vragen met subvragen en de antwoordopties
+        worden herkend, en "niet van toepassing" wordt overgeslagen. De regel: per categorie telt het strengste antwoord.
+        Eén nee maakt de categorie rood, één weet niet of twijfel maakt 'm geel.
       </p>
 
       <div class="mt-5 flex flex-wrap items-center gap-3">
@@ -32,7 +34,7 @@ const templateQuestions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, q: c.chec
       <div class="mt-5 grid gap-4 sm:grid-cols-2">
         <div class="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4">
           <p class="text-[12.5px] font-semibold">Stap 1 — Format</p>
-          <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Download de voorbeeld-template zodat de kolommen kloppen.</p>
+          <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Heb je geen HubSpot-export? Download dan de voorbeeld-template.</p>
           <button id="dl-template" type="button" class="mt-3 inline-flex items-center gap-1.5 rounded-[9px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-border-strong)]">
             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
             Download template (.xlsx)
@@ -40,7 +42,7 @@ const templateQuestions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, q: c.chec
         </div>
         <div class="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4">
           <p class="text-[12.5px] font-semibold">Stap 2 — Upload</p>
-          <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Kies de ingevulde Excel (.xlsx of .csv).</p>
+          <p class="mt-1 text-[11.5px] text-[var(--color-ink-3)]">Kies de HubSpot-export of je eigen ingevulde Excel (.xlsx, .xls of .csv).</p>
           <label id="drop" class="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-[9px] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] font-medium text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-ink-3)]">
             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
             <span id="drop-label">Sleep hierheen of klik om te kiezen</span>
@@ -65,6 +67,12 @@ const templateQuestions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, q: c.chec
             <span class="rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 font-medium"><span id="r-people">0</span> personen</span>
             <span class="rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 font-medium"><span id="r-questions">0</span> vragen</span>
           </div>
+        </div>
+
+        <div id="group-row" class="mt-4 hidden flex-wrap items-center gap-2">
+          <label class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Familie / bedrijf</label>
+          <select id="r-group" class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12.5px]"></select>
+          <span class="text-[11px] text-[var(--color-ink-3)]">Het bestand bevat meerdere bedrijven; kies welke kleurplaat je wilt zien.</span>
         </div>
 
         <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -123,11 +131,49 @@ const templateQuestions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, q: c.chec
     const fileInput = document.getElementById('file') as HTMLInputElement | null;
     const drop = document.getElementById('drop');
     const dropLabel = document.getElementById('drop-label');
+    const groupRow = document.getElementById('group-row');
+    const groupSel = document.getElementById('r-group') as HTMLSelectElement | null;
+    const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
     const setCell = (id: string, val: string | number) => {
       const el = document.getElementById(id);
       if (el) el.textContent = String(val);
     };
+
+    type Parsed = ReturnType<typeof parseRows>;
+    let lastParsed: Parsed | null = null;
+
+    function paint(group: string) {
+      if (!lastParsed) return;
+      const ans = group ? lastParsed.answers.filter((a) => a.group === group) : lastParsed.answers;
+      const results = buildKleurplaat(ans);
+      const people = new Set(ans.map((a) => a.person));
+
+      setCell('r-people', people.size || lastParsed.people.length);
+      setCell('r-questions', lastParsed.questions.length);
+      setCell('r-moment', (document.getElementById('moment') as HTMLSelectElement | null)?.value || 'Vragenlijst');
+
+      results.forEach((res) => {
+        const tile = document.querySelector(`[data-cat="${res.categoryId}"]`);
+        if (!tile) return;
+        const sc = SCORE[res.score];
+        const badge = tile.querySelector('[data-badge]') as HTMLElement | null;
+        const num = tile.querySelector('[data-num]') as HTMLElement | null;
+        const reason = tile.querySelector('[data-reason]') as HTMLElement | null;
+        if (badge) { badge.classList.remove(...ALL_BADGE); badge.classList.add(...sc.badge.split(' ')); badge.textContent = sc.label; }
+        if (num) { num.classList.remove(...ALL_NUM); num.classList.add(...sc.num.split(' ')); }
+        if (reason) reason.textContent = res.reason;
+      });
+
+      const warn = document.getElementById('warnings');
+      const msgs = [...lastParsed.warnings];
+      if (lastParsed.nvt > 0) msgs.push(`${lastParsed.nvt} antwoorden "niet van toepassing" overgeslagen (overdrager/opvolger).`);
+      if (lastParsed.unrecognized > 0) msgs.push(`${lastParsed.unrecognized} cel(len) niet herkend en overgeslagen.`);
+      if (warn) {
+        if (msgs.length) { warn.classList.remove('hidden'); warn.textContent = msgs.join(' '); }
+        else warn.classList.add('hidden');
+      }
+    }
 
     const render = (file: File) => {
       const reader = new FileReader();
@@ -137,32 +183,23 @@ const templateQuestions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, q: c.chec
           const wb = XLSX.read(data, { type: 'array' });
           const sheet = wb.Sheets[wb.SheetNames[0]];
           const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
-          const parsed = parseRows(rows);
-          const results = buildKleurplaat(parsed.answers);
+          lastParsed = parseRows(rows);
 
-          setCell('r-people', parsed.people.length);
-          setCell('r-questions', parsed.questions.length);
-          setCell('r-moment', (document.getElementById('moment') as HTMLSelectElement | null)?.value || 'Vragenlijst');
-
-          results.forEach((res) => {
-            const tile = document.querySelector(`[data-cat="${res.categoryId}"]`);
-            if (!tile) return;
-            const sc = SCORE[res.score];
-            const badge = tile.querySelector('[data-badge]') as HTMLElement | null;
-            const num = tile.querySelector('[data-num]') as HTMLElement | null;
-            const reason = tile.querySelector('[data-reason]') as HTMLElement | null;
-            if (badge) { badge.classList.remove(...ALL_BADGE); badge.classList.add(...sc.badge.split(' ')); badge.textContent = sc.label; }
-            if (num) { num.classList.remove(...ALL_NUM); num.classList.add(...sc.num.split(' ')); }
-            if (reason) reason.textContent = res.reason;
-          });
-
-          const warn = document.getElementById('warnings');
-          const msgs = [...parsed.warnings];
-          if (parsed.unrecognized > 0) msgs.push(`${parsed.unrecognized} cel(len) met een onbekend antwoord overgeslagen (gebruik ja, nee of weet niet).`);
-          if (warn) {
-            if (msgs.length) { warn.classList.remove('hidden'); warn.textContent = msgs.join(' '); }
-            else warn.classList.add('hidden');
+          if (groupSel && groupRow) {
+            if (lastParsed.groups.length > 1) {
+              groupSel.innerHTML =
+                lastParsed.groups.map((g) => `<option value="${escAttr(g)}">${escAttr(g)}</option>`).join('') +
+                '<option value="">Alle respondenten samen</option>';
+              groupSel.value = lastParsed.groups[0];
+              groupRow.classList.remove('hidden');
+              groupRow.classList.add('flex');
+            } else {
+              groupRow.classList.add('hidden');
+              groupRow.classList.remove('flex');
+            }
           }
+
+          paint(lastParsed.groups.length > 1 ? lastParsed.groups[0] : '');
 
           document.getElementById('empty')?.classList.add('hidden');
           document.getElementById('result')?.classList.remove('hidden');
@@ -174,6 +211,8 @@ const templateQuestions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, q: c.chec
       };
       reader.readAsArrayBuffer(file);
     };
+
+    groupSel?.addEventListener('change', () => paint(groupSel.value));
 
     fileInput?.addEventListener('change', () => { if (fileInput.files?.[0]) render(fileInput.files[0]); });
     drop?.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('border-[var(--color-ink-3)]'); });
