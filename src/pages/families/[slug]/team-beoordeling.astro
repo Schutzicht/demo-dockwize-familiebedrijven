@@ -3,6 +3,7 @@ import AppLayout from '../../../layouts/AppLayout.astro';
 import Card from '../../../components/Card.astro';
 import ScoreBadge from '../../../components/ScoreBadge.astro';
 import ScoreWheel from '../../../components/ScoreWheel.astro';
+import CategoryLegend from '../../../components/CategoryLegend.astro';
 import FamilyTabs from '../../../components/FamilyTabs.astro';
 import { allFamilies } from '../../../data/wattel';
 import { CATEGORY_DEFINITIONS, categoryScoreFromAnswers } from '../../../data/types';
@@ -60,6 +61,7 @@ const koSegments = CATEGORY_DEFINITIONS.map((c) => ({
           <ScoreWheel segments={teamSegments} centerTitle="Team" centerSubtitle="Beoordeling" variant="dark" size={300} />
         </div>
       </div>
+      <CategoryLegend class="mt-7 border-t border-[var(--color-border)] pt-6" />
     </Card>
 
     <Card padding="none">

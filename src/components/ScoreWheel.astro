@@ -70,6 +70,7 @@ const innerText = variant === 'dark' ? '#ffffff' : 'var(--color-ink)';
 const innerSubtext = variant === 'dark' ? 'rgba(255,255,255,0.65)' : 'var(--color-ink-3)';
 const innerStroke = variant === 'dark' ? 'var(--color-ink)' : 'var(--color-border)';
 const uid = `${centerTitle}-${size}`.replace(/[^a-zA-Z0-9-]/g, '');
+const numberSize = Math.round(size * 0.06);
 ---
 
 <figure class="flex flex-col items-center">
@@ -106,14 +107,11 @@ const uid = `${centerTitle}-${size}`.replace(/[^a-zA-Z0-9-]/g, '');
             x={lbl.x}
             y={lbl.y}
             text-anchor="middle"
-            dominant-baseline="middle"
-            transform={`rotate(${lbl.rotate} ${lbl.x} ${lbl.y})`}
+            dominant-baseline="central"
             fill="#ffffff"
-            class="text-[10.5px] font-semibold"
-            style="font-family: var(--font-sans);"
+            style={`font-family: var(--font-display); font-weight: 700; font-size: ${numberSize}px; letter-spacing: -0.01em;`}
           >
-            <tspan x={lbl.x} dy="-0.55em">{`${seg.categoryId}.`}</tspan>
-            <tspan x={lbl.x} dy="1.1em">{title}</tspan>
+            {seg.categoryId}
           </text>
         </g>
       );
