@@ -58,6 +58,16 @@ const rapPayload = {
   <FamilyTabs family={family} active="ai-rapport" />
 
   <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="flex items-start gap-3 rounded-[12px] border border-[var(--color-warning)]/40 bg-[var(--color-warning-soft)] px-4 py-3.5">
+      <svg class="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-warning)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      <div>
+        <p class="text-[12.5px] font-semibold text-[var(--color-warning)]">Notitie voor Imro — dit deel werkt nog niet echt</p>
+        <p class="mt-1 text-[12.5px] leading-relaxed text-[var(--color-ink-2)]">
+          De rapportgeneratie hieronder draait nu op de vaste voorbeelddata van de demo-familie en leest nog geen echte aantekeningen. Om dit werkend te krijgen moet ik een <strong>Anthropic API-key</strong> aan de tool koppelen; de tool laat de AI dan live jullie eigen aantekeningen lezen, zelf de juiste knelpunt-code en het advies bepalen en de kleur kiezen, voor elke familie. Dat kost een paar cent per gegenereerd rapport. Die key moet sowieso voor Dockwize aangemaakt worden.
+        </p>
+      </div>
+    </div>
+
     <Card padding="lg" class="overflow-hidden">
       <div class="grid items-start gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2">

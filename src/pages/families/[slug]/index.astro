@@ -47,6 +47,10 @@ const overigen = family.members.filter((m) => m.role === 'overig');
   <FamilyTabs family={family} active="overzicht" />
 
   <div class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <div class="flex flex-wrap items-center gap-3 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-3">
+      <span class="rounded-full bg-[var(--color-ink)] px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-white">Demo-familie</span>
+      <p class="text-[12.5px] text-[var(--color-ink-2)]">Dit is de ingebouwde voorbeeldfamilie met demo-data om de tool te laten zien. Maak via <a href="/families" class="font-medium text-[var(--color-ink)] underline">Families</a> een eigen traject aan om met je eigen gegevens te werken.</p>
+    </div>
     <div class="grid gap-6 lg:grid-cols-3">
       <Card class="lg:col-span-3" padding="lg" data-tour="wheels">
         <div class="grid items-start gap-8 lg:grid-cols-3">

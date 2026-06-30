@@ -34,6 +34,7 @@ const fmt = (iso: string) =>
       </div>
 
       <div id="family-list" class="divide-y divide-[var(--color-border)]/60">
+        <div id="family-stored"></div>
         {allFamilies.map((f) => {
           const openActions = f.actions.filter((a) => a.status !== 'done').length;
           const lastReport = f.aiReports[f.aiReports.length - 1];
@@ -42,7 +43,10 @@ const fmt = (iso: string) =>
               <div class="col-span-4 flex items-center gap-3">
                 <span class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-soft)] text-[12px] font-bold uppercase text-[var(--color-ink)]">{f.name.split(' ').pop()?.slice(0, 2)}</span>
                 <div>
-                  <p class="text-[14px] font-semibold text-[var(--color-ink)]">{f.name}</p>
+                  <div class="flex items-center gap-2">
+                    <p class="text-[14px] font-semibold text-[var(--color-ink)]">{f.name}</p>
+                    <span class="rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-3)]">Demo-familie</span>
+                  </div>
                   <p class="text-[11.5px] text-[var(--color-ink-3)]">{f.business}</p>
                 </div>
               </div>
@@ -105,14 +109,46 @@ const fmt = (iso: string) =>
   </div>
 
   <script>
+    import { getFamilies, addFamily, deleteFamily } from '../../lib/familyStore';
+
     const toast = (window as unknown as { dwToast?: (m: string) => void }).dwToast;
-    const list = document.getElementById('family-list');
+    const storedWrap = document.getElementById('family-stored');
     const filterInput = document.getElementById('family-filter') as HTMLInputElement | null;
     const emptyEl = document.getElementById('family-empty');
     const statusBtns = Array.from(document.querySelectorAll<HTMLElement>('.family-status-btn'));
     let statusFilter = 'all';
 
     const rows = () => Array.from(document.querySelectorAll<HTMLElement>('#family-list [data-row]'));
+    const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
+    const dDate = (iso: string) => { try { return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; } };
+
+    function storedRowHtml(f: ReturnType<typeof getFamilies>[number]) {
+      const initials = esc((f.name.split(' ').pop() || f.name).slice(0, 2).toUpperCase());
+      return `<a href="/families/werkmap?id=${encodeURIComponent(f.id)}" data-row data-name="${esc((f.name + ' ' + f.business).toLowerCase())}" data-status="concept" class="grid grid-cols-12 items-center gap-4 border-b border-[var(--color-border)]/60 px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
+        <div class="col-span-4 flex items-center gap-3">
+          <span class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-soft)] text-[12px] font-bold uppercase text-[var(--color-ink)]">${initials}</span>
+          <div><div class="flex items-center gap-2"><p class="text-[14px] font-semibold text-[var(--color-ink)]">${esc(f.name)}</p><span class="rounded-full bg-[var(--color-info-soft)] px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-[var(--color-info)]">Nieuw</span></div><p class="text-[11.5px] text-[var(--color-ink-3)]">${esc(f.business)}</p></div>
+        </div>
+        <div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Status</p><p class="text-[12.5px] font-medium capitalize">concept</p></div>
+        <div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Kick-off</p><p class="text-[12.5px] text-[var(--color-ink-3)]">nog plannen</p></div>
+        <div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Aangemaakt</p><p class="text-[12.5px] tabular-nums">${dDate(f.createdAt)}</p></div>
+        <div class="col-span-1"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Acties</p><p class="text-[12.5px] font-medium">0</p></div>
+        <div class="col-span-1 text-right"><button type="button" class="fam-del text-[11px] text-[var(--color-ink-3)] hover:text-[var(--color-danger)]" data-id="${esc(f.id)}">Verwijder</button></div>
+      </a>`;
+    }
+    function renderStored() {
+      if (storedWrap) storedWrap.innerHTML = getFamilies().map(storedRowHtml).join('');
+    }
+    storedWrap?.addEventListener('click', (e) => {
+      const del = (e.target as HTMLElement)?.closest('.fam-del');
+      if (!del) return;
+      e.preventDefault();
+      e.stopPropagation();
+      deleteFamily(del.getAttribute('data-id') || '');
+      renderStored();
+      applyFilter();
+      toast?.('Traject verwijderd');
+    });
 
     const applyFilter = () => {
       const q = (filterInput?.value || '').trim().toLowerCase();
@@ -142,6 +178,9 @@ const fmt = (iso: string) =>
       }),
     );
 
+    renderStored();
+    applyFilter();
+
     // Nieuw traject
     const modal = document.getElementById('family-modal');
     const openBtn = document.getElementById('new-family-btn');
@@ -157,33 +196,10 @@ const fmt = (iso: string) =>
     document.getElementById('family-create')?.addEventListener('click', () => {
       const name = (nameInput?.value || '').trim();
       if (!name) { toast?.('Vul een familienaam in'); nameInput?.focus(); return; }
-      const business = (bizInput?.value || '').trim() || 'Nieuw familiebedrijf';
-      const initials = (name.split(' ').pop() || name).slice(0, 2).toUpperCase();
-
-      const row = document.createElement('div');
-      row.dataset.row = '';
-      row.dataset.name = `${name} ${business}`.toLowerCase();
-      row.dataset.status = 'concept';
-      row.className = 'grid grid-cols-12 items-center gap-4 px-5 py-4';
-      row.innerHTML =
-        '<div class="col-span-4 flex items-center gap-3">' +
-        `<span class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-soft)] text-[12px] font-bold uppercase text-[var(--color-ink)]">${initials}</span>` +
-        '<div><p data-n class="text-[14px] font-semibold text-[var(--color-ink)]"></p><p data-b class="text-[11.5px] text-[var(--color-ink-3)]"></p></div>' +
-        '</div>' +
-        '<div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Status</p><p class="text-[12.5px] font-medium capitalize">concept</p></div>' +
-        '<div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Kick-off</p><p class="text-[12.5px] text-[var(--color-ink-3)]">nog plannen</p></div>' +
-        '<div class="col-span-2"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Terugkoppeling</p><p class="text-[12.5px] text-[var(--color-ink-3)]">—</p></div>' +
-        '<div class="col-span-1"><p class="text-[10.5px] uppercase tracking-widest text-[var(--color-muted)]">Acties</p><p class="text-[12.5px] font-medium">0</p></div>' +
-        '<div class="col-span-1 text-right"><span class="inline-flex items-center rounded-full bg-[var(--color-info-soft)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-info)]">nieuw</span></div>';
-      const nEl = row.querySelector('[data-n]');
-      if (nEl) nEl.textContent = name;
-      const bEl = row.querySelector('[data-b]');
-      if (bEl) bEl.textContent = business;
-
-      list?.prepend(row);
+      const business = (bizInput?.value || '').trim();
+      const fam = addFamily(name, business);
       close();
-      applyFilter();
-      toast?.(`Traject aangemaakt voor ${name}`);
+      location.assign(`/families/werkmap?id=${encodeURIComponent(fam.id)}`);
     });
   </script>
 </AppLayout>

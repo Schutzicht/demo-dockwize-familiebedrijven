@@ -1,0 +1,113 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import { CATEGORY_DEFINITIONS } from '../../data/types';
+
+const catOptions = CATEGORY_DEFINITIONS.map((c) => ({ id: c.id, label: `${c.id}. ${c.shortTitle}` }));
+---
+
+<AppLayout title="Werkmap — Dockwize Familiebedrijven" topbarTitle="Werkmap" topbarSubtitle="Eigen traject">
+  <div class="mx-auto max-w-5xl px-6 py-8">
+    <a href="/families" class="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--color-ink-3)] hover:text-[var(--color-ink)]">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Terug naar families
+    </a>
+    <div id="wm-root" class="mt-5"></div>
+  </div>
+
+  <script type="application/json" id="wm-cats" set:html={JSON.stringify(catOptions)} is:inline></script>
+
+  <script>
+    import { getFamily, addNote } from '../../lib/familyStore';
+
+    const catEl = document.getElementById('wm-cats');
+    const CATS: { id: number; label: string }[] = catEl ? JSON.parse(catEl.textContent || '[]') : [];
+    const toast = (window as unknown as { dwToast?: (m: string) => void }).dwToast;
+    const root = document.getElementById('wm-root');
+    const id = new URLSearchParams(location.search).get('id') || '';
+
+    const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
+    const fmt = (iso: string) => { try { return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; } };
+
+    function notesHtml(fam: NonNullable<ReturnType<typeof getFamily>>) {
+      if (fam.logfile.length === 0) return '<p class="text-[12px] text-[var(--color-ink-3)]">Nog geen aantekeningen. Voeg je eerste bevinding toe.</p>';
+      return fam.logfile.map((n) => {
+        const cat = CATS.find((c) => c.id === n.category);
+        return `<div class="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+          <div class="flex items-center justify-between gap-3 text-[11.5px] text-[var(--color-ink-3)]">
+            <span><span class="font-medium text-[var(--color-ink-2)]">${esc(n.author || 'Onbekend')}</span> · ${fmt(n.date)}</span>
+            ${cat ? `<span class="rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 font-medium text-[var(--color-ink-2)]">${esc(cat.label)}</span>` : ''}
+          </div>
+          <p class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--color-ink)]">${esc(n.body)}</p>
+        </div>`;
+      }).join('');
+    }
+
+    function render() {
+      if (!root) return;
+      const fam = getFamily(id);
+      if (!fam) {
+        root.innerHTML = `<div class="rounded-[14px] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-12 text-center text-[13px] text-[var(--color-ink-3)]">Deze familie is niet gevonden. <a href="/families" class="font-medium text-[var(--color-ink)] underline">Terug naar families</a>.</div>`;
+        return;
+      }
+      document.title = `${fam.name} — Dockwize Familiebedrijven`;
+      const opts = CATS.map((c) => `<option value="${c.id}">${esc(c.label)}</option>`).join('');
+
+      root.innerHTML = `
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="flex h-12 w-12 items-center justify-center rounded-[12px] bg-[var(--color-accent-soft)] text-[14px] font-bold uppercase text-[var(--color-ink)]">${esc((fam.name.split(' ').pop() || fam.name).slice(0, 2))}</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-[20px] font-semibold tracking-tight">${esc(fam.name)}</h2>
+              <span class="rounded-full bg-[var(--color-info-soft)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-info)]">Concept · nieuw</span>
+            </div>
+            <p class="text-[12.5px] text-[var(--color-ink-3)]">${esc(fam.business)} · aangemaakt ${fmt(fam.createdAt)}</p>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-5 lg:grid-cols-2">
+          <div class="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+            <p class="text-[11px] uppercase tracking-widest text-[var(--color-ink-3)]">Kernfunctie 1</p>
+            <h3 class="mt-1 text-[15px] font-semibold tracking-tight">Kleurplaat uit de vragenlijst</h3>
+            <p class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--color-ink-2)]">Upload de Excel met de antwoorden en genereer de kleurplaat op de 9 categorieën.</p>
+            <a href="/import" class="mt-4 inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-ink)] px-3.5 py-2 text-[12.5px] font-medium text-white hover:bg-black">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+              Naar kleurplaat
+            </a>
+          </div>
+
+          <div class="rounded-[14px] border border-[var(--color-warning)]/40 bg-[var(--color-warning-soft)] p-5">
+            <p class="text-[11px] uppercase tracking-widest text-[var(--color-warning)]">Kernfunctie 2</p>
+            <h3 class="mt-1 text-[15px] font-semibold tracking-tight">Rapport uit de aantekeningen</h3>
+            <p class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--color-ink-2)]">Werkt nog niet echt: hiervoor moet ik een <strong>Anthropic API-key</strong> aan de tool koppelen, zodat de AI jullie aantekeningen live leest en zelf de codes, het advies en de kleur bepaalt. Tot die tijd is de rapportgeneratie alleen op de demo-familie te zien.</p>
+          </div>
+        </div>
+
+        <div class="mt-5 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+          <h3 class="text-[15px] font-semibold tracking-tight">Logfile — aantekeningen</h3>
+          <p class="mt-1 text-[12px] text-[var(--color-ink-3)]">Voeg bevindingen toe na elke sessie. Deze worden bewaard op dit apparaat.</p>
+          <div class="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <textarea id="wm-note" rows="2" placeholder="Wat is er opgevallen?" class="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-[12.5px] outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface)]"></textarea>
+            <div class="flex gap-2 sm:flex-col">
+              <select id="wm-cat" class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px]"><option value="">Categorie...</option>${opts}</select>
+              <button id="wm-save" type="button" class="rounded-[10px] bg-[var(--color-ink)] px-3 py-2 text-[12.5px] font-medium text-white hover:bg-black">Opslaan</button>
+            </div>
+          </div>
+          <div id="wm-notes" class="mt-4 space-y-2.5">${notesHtml(fam)}</div>
+        </div>
+      `;
+
+      document.getElementById('wm-save')?.addEventListener('click', () => {
+        const ta = document.getElementById('wm-note') as HTMLTextAreaElement | null;
+        const sel = document.getElementById('wm-cat') as HTMLSelectElement | null;
+        const text = (ta?.value || '').trim();
+        if (!text) { toast?.('Schrijf eerst een notitie'); ta?.focus(); return; }
+        const cat = sel && sel.value ? Number(sel.value) : null;
+        addNote(id, { author: 'Imro Wong', category: cat, body: text });
+        render();
+        toast?.('Notitie opgeslagen');
+      });
+    }
+
+    render();
+  </script>
+</AppLayout>
