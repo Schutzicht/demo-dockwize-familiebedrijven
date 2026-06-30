@@ -17,6 +17,11 @@ const rap = buildRapport(family, cutoffIndex);
 const today = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
 const scoreClass: Record<string, string> = { red: 's-red', yellow: 's-yellow', green: 's-green' };
 const scoreLabel: Record<string, string> = { red: 'Actie nodig', yellow: 'Aandacht', green: 'Op koers' };
+const scoreIcon: Record<string, string> = {
+  green: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>',
+  yellow: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+  red: '<svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+};
 ---
 
 <!doctype html>
@@ -73,17 +78,18 @@ const scoreLabel: Record<string, string> = { red: 'Actie nodig', yellow: 'Aandac
 
       /* kleurplaat board */
       .board { margin-top:24px; flex:1; display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:1fr; gap:16px; }
-      .cell { border-radius:12px; border:1px solid var(--border); background:var(--surface); padding:20px 22px; display:flex; flex-direction:column; position:relative; }
-      .cell .num { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; }
-      .cell .ct { margin-top:14px; font-size:19px; font-weight:800; letter-spacing:-0.01em; }
+      .cell { border-radius:14px; border:1px solid var(--border); background:var(--surface); padding:20px 22px; display:flex; flex-direction:column; position:relative; }
+      .cell .head { display:flex; align-items:center; justify-content:space-between; }
+      .cell .num { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; }
+      .cell .ic svg { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+      .cell .ct { margin-top:15px; font-size:19px; font-weight:800; letter-spacing:-0.01em; }
       .cell .st { margin-top:auto; font-size:13px; font-weight:700; }
       .s-red { --c:var(--alert); --cs:var(--alert-soft); }
       .s-yellow { --c:var(--amber); --cs:var(--amber-soft); }
       .s-green { --c:var(--green); --cs:var(--green-soft); }
-      .cell.s-red, .cell.s-yellow, .cell.s-green { border-color:var(--c); }
-      .cell .num { background:var(--cs); color:var(--c); }
-      .cell .st { color:var(--c); }
-      .cell.s-green .st { color:var(--ink-3); }
+      .cell.s-red, .cell.s-yellow, .cell.s-green { background:var(--cs); border-color:color-mix(in srgb, var(--c) 38%, transparent); }
+      .cell .num { background:var(--c); color:#fff; }
+      .cell .ic, .cell .st { color:var(--c); }
 
       .legend { margin-top:18px; display:flex; gap:22px; font-size:13px; font-weight:600; color:var(--ink-3); }
       .legend span { display:inline-flex; align-items:center; gap:8px; }
@@ -176,7 +182,10 @@ const scoreLabel: Record<string, string> = { red: 'Actie nodig', yellow: 'Aandac
         <div class="board">
           {rap.findings.map((f) => (
             <div class={`cell ${scoreClass[f.score]}`}>
-              <span class="num">{f.categoryId}</span>
+              <div class="head">
+                <span class="num">{f.categoryId}</span>
+                <span class="ic" set:html={scoreIcon[f.score]}></span>
+              </div>
               <span class="ct">{f.shortTitle}</span>
               <span class="st">{scoreLabel[f.score]}</span>
             </div>

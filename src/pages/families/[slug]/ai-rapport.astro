@@ -292,10 +292,15 @@ const rapPayload = {
     sessionSel?.addEventListener('change', renderDeelnemers);
     renderDeelnemers();
 
-    const SCORE: Record<string, { tile: string; badge: string; num: string; label: string }> = {
-      red: { tile: 'border-[var(--color-score-red-soft)]', badge: 'bg-[var(--color-score-red-soft)] text-[var(--color-score-red)]', num: 'bg-[var(--color-score-red)] text-white', label: 'Actie nodig' },
-      yellow: { tile: 'border-[var(--color-score-yellow-soft)]', badge: 'bg-[var(--color-score-yellow-soft)] text-[var(--color-score-yellow)]', num: 'bg-[var(--color-score-yellow)] text-white', label: 'Aandacht' },
-      green: { tile: 'border-[var(--color-border)]', badge: 'bg-[var(--color-score-green-soft)] text-[var(--color-score-green)]', num: 'bg-[var(--color-score-green)] text-white', label: 'Op koers' },
+    const SCORE: Record<string, { tile: string; num: string; text: string; label: string }> = {
+      red: { tile: 'bg-[var(--color-score-red-soft)]', num: 'bg-[var(--color-score-red)] text-white', text: 'text-[var(--color-score-red)]', label: 'Actie nodig' },
+      yellow: { tile: 'bg-[var(--color-score-yellow-soft)]', num: 'bg-[var(--color-score-yellow)] text-white', text: 'text-[var(--color-score-yellow)]', label: 'Aandacht' },
+      green: { tile: 'bg-[var(--color-score-green-soft)]', num: 'bg-[var(--color-score-green)] text-white', text: 'text-[var(--color-score-green)]', label: 'Op koers' },
+    };
+    const ICON: Record<string, string> = {
+      green: '<svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>',
+      yellow: '<svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+      red: '<svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
     };
     const setText = (id: string, t: string) => { const el = document.getElementById(id); if (el) el.textContent = t; };
 
@@ -319,7 +324,7 @@ const rapPayload = {
           const body = f
             ? `<div class="mt-2 space-y-1"><p class="text-[11.5px] font-medium text-[var(--color-ink)]"><span class="font-mono text-[10.5px] text-[var(--color-ink-3)]">${f.code}</span> ${f.knelpuntKort ?? ''}</p><p class="text-[11px] text-[var(--color-ink-3)]">Advies ${f.adviesCode}: ${f.adviesKort ?? ''}</p><p class="mt-1 text-[10.5px] text-[var(--color-muted)]">bron: ${f.author}, ${P.sessions[f.session]?.label ?? ''}</p></div>`
             : `<p class="mt-2 text-[11px] text-[var(--color-ink-3)]">Geen bijzonderheden in de aantekeningen</p>`;
-          return `<div class="rounded-[12px] border ${sc.tile} bg-[var(--color-surface)] p-4"><div class="flex items-center justify-between"><span class="flex h-7 w-7 items-center justify-center rounded-full ${sc.num} text-[11px] font-semibold">${cat.id}</span><span class="rounded-full px-2 py-0.5 text-[10px] font-medium ${sc.badge}">${sc.label}</span></div><p class="mt-2 text-[13px] font-semibold leading-snug">${cat.shortTitle}</p>${body}</div>`;
+          return `<div class="rounded-[16px] border border-[var(--color-border)] ${sc.tile} p-4"><div class="flex items-center justify-between"><span class="flex h-9 w-9 items-center justify-center rounded-full ${sc.num} text-[13px] font-bold">${cat.id}</span><span class="${sc.text}">${ICON[score] || ''}</span></div><p class="mt-2.5 text-[13.5px] font-semibold leading-snug text-[var(--color-ink)]">${cat.shortTitle}</p><p class="mt-0.5 text-[11.5px] font-semibold ${sc.text}">${sc.label}</p>${body}</div>`;
         }).join('');
       }
       const lbl = P.sessions[c]?.label ?? '';

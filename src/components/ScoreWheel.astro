@@ -69,6 +69,7 @@ const innerFill = variant === 'dark' ? 'var(--color-ink)' : '#ffffff';
 const innerText = variant === 'dark' ? '#ffffff' : 'var(--color-ink)';
 const innerSubtext = variant === 'dark' ? 'rgba(255,255,255,0.65)' : 'var(--color-ink-3)';
 const innerStroke = variant === 'dark' ? 'var(--color-ink)' : 'var(--color-border)';
+const uid = `${centerTitle}-${size}`.replace(/[^a-zA-Z0-9-]/g, '');
 ---
 
 <figure class="flex flex-col items-center">
@@ -80,6 +81,12 @@ const innerStroke = variant === 'dark' ? 'var(--color-ink)' : 'var(--color-borde
     role="img"
     aria-label={`Score wiel ${centerTitle}`}
   >
+    <defs>
+      <filter id={`wheel-shadow-${uid}`} x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#1d1d1b" flood-opacity="0.12" />
+      </filter>
+    </defs>
+    <g filter={`url(#wheel-shadow-${uid})`}>
     {segments.map((seg, i) => {
       const path = segmentPath(i, outerR, innerR);
       const lbl = labelPosition(i);
@@ -90,7 +97,8 @@ const innerStroke = variant === 'dark' ? 'var(--color-ink)' : 'var(--color-borde
             d={path}
             fill={colorMap[seg.score]}
             stroke="#ffffff"
-            stroke-width="2"
+            stroke-width="3"
+            stroke-linejoin="round"
           >
             <title>{`${seg.categoryId}. ${title} — ${seg.score}`}</title>
           </path>
@@ -110,6 +118,7 @@ const innerStroke = variant === 'dark' ? 'var(--color-ink)' : 'var(--color-borde
         </g>
       );
     })}
+    </g>
 
     <circle cx={cx} cy={cy} r={innerR - 1} fill={innerFill} stroke={innerStroke} stroke-width="1.5" />
     <text
